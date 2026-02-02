@@ -79,34 +79,35 @@ const customStyles = `
     padding: 0 8px; border-radius: 12px; font-size: 0.75rem; font-weight: bold; color: #1e40af; z-index: 20;
   }
 
-  /* --- 白いトレーのデザイン --- */
+  /* --- 白いトレーのデザイン (縦長・上取っ手仕様) --- */
   .white-tray {
     display: grid;
-    grid-template-columns: repeat(4, 1fr); /* 4列 */
+    grid-template-columns: repeat(3, 1fr); /* 3列 x 4行 = 12個 (縦長) */
     gap: 4px;
-    background-color: #f9fafb; /* 白に近いグレー */
+    background-color: #f9fafb;
     border: 2px solid #d1d5db;
     border-radius: 6px;
     padding: 6px;
     position: relative;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    margin-top: 12px; /* 上の取っ手用のスペース */
   }
   
-  /* トレーの持ち手 (左右の3の辺につける) */
-  .tray-handle-left, .tray-handle-right {
+  /* 上部の取っ手 (材料3個分の幅・グラデーション) */
+  .tray-handle-top {
     position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 8px;
-    height: 60%; /* 3の辺の6割くらいの長さ */
-    background-color: #fff;
+    top: -12px; /* 本体の上に配置 */
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%; /* 横幅いっぱい (3個分) */
+    height: 12px;
+    background: linear-gradient(to top, #d1d5db 0%, #ffffff 100%); /* 下から上へグラデーション */
     border: 2px solid #d1d5db;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    border-bottom: none;
+    border-radius: 6px 6px 0 0;
+    box-shadow: 0 -1px 2px rgba(0,0,0,0.05);
   }
-  .tray-handle-left { left: -9px; border-right: none; border-radius: 4px 0 0 4px; }
-  .tray-handle-right { right: -9px; border-left: none; border-radius: 0 4px 4px 0; }
   
-  /* トレー内のスロット */
   .tray-slot {
     width: 26px; height: 26px;
     border-radius: 4px;
@@ -162,9 +163,9 @@ const MiniControl = ({ label, count, onInc, onDec }: any) => (
   </div>
 );
 
-// 新機能: トレー表示コンポーネント
+// トレー表示コンポーネント (更新版: 縦長・上取っ手)
 const SafetyTray = ({ count, typeClass }: { count: number, typeClass: string }) => {
-  const CAPACITY = 12; // 3x4
+  const CAPACITY = 12; // 12個
   const insideTray = Math.min(count, CAPACITY);
   const overflow = Math.max(0, count - CAPACITY);
 
@@ -172,8 +173,7 @@ const SafetyTray = ({ count, typeClass }: { count: number, typeClass: string }) 
     <div className="flex flex-col items-center">
       {/* トレー本体 */}
       <div className="white-tray">
-        <div className="tray-handle-left"></div>
-        <div className="tray-handle-right"></div>
+        <div className="tray-handle-top"></div>
         {/* 12個のスロットを描画 */}
         {[...Array(CAPACITY)].map((_, i) => (
           <div key={i} className="tray-slot">
@@ -184,7 +184,7 @@ const SafetyTray = ({ count, typeClass }: { count: number, typeClass: string }) 
       
       {/* あふれた分 */}
       {overflow > 0 && (
-        <div className="mt-2 flex flex-wrap gap-1 justify-center max-w-[120px] bg-gray-200/40 p-1 rounded">
+        <div className="mt-2 flex flex-wrap gap-1 justify-center max-w-[100px] bg-gray-200/40 p-1 rounded">
           {[...Array(overflow)].map((_, i) => (
             <div key={i} className={`token-cube ${typeClass}`} />
           ))}
@@ -310,7 +310,7 @@ export default function App() {
 
             <div className="flex-1 flex items-center justify-center p-4">
               {state.safetyWarehouse ? (
-                // トレー表示
+                // トレー表示 (縦長)
                 <SafetyTray count={state.materials} typeClass="token-mat" />
               ) : (
                 // 通常表示
@@ -397,7 +397,7 @@ export default function App() {
 
             <div className="flex-1 flex flex-col items-center justify-center py-4">
                {state.safetySales ? (
-                // トレー表示
+                // トレー表示 (縦長)
                 <SafetyTray count={state.products} typeClass="token-prod" />
               ) : (
                 // 通常表示
