@@ -123,11 +123,15 @@ const DEPRECIATION = {
   senior: { small: 20, medium: 26, large: 40 },
 };
 
+const MACHINE_COSTS: Record<number, number> = {
+  1: 20, 2: 22, 3: 24, 4: 26, 5: 28,
+};
+
 const PRICES = {
-  2: { small: 10, medium: 13, large: 20, comp: 20, insurance: 5, edu: 20, rd: 20, ads: 20, worker: 33, sales: 33, warehouse: 20 },
-  3: { small: 20, medium: 26, large: 40, comp: 20, insurance: 5, edu: 20, rd: 20, ads: 20, worker: 36, sales: 36, warehouse: 20 },
-  4: { small: 20, medium: 26, large: 40, comp: 20, insurance: 5, edu: 20, rd: 20, ads: 20, worker: 39, sales: 39, warehouse: 20 },
-  5: { small: 20, medium: 26, large: 40, comp: 20, insurance: 5, edu: 20, rd: 20, ads: 20, worker: 42, sales: 42, warehouse: 20 },
+  2: { comp: 20, insurance: 5, edu: 20, rd: 20, ads: 20, worker: 33, sales: 33, warehouse: 20 },
+  3: { comp: 20, insurance: 5, edu: 20, rd: 20, ads: 20, worker: 36, sales: 36, warehouse: 20 },
+  4: { comp: 20, insurance: 5, edu: 20, rd: 20, ads: 20, worker: 39, sales: 39, warehouse: 20 },
+  5: { comp: 20, insurance: 5, edu: 20, rd: 20, ads: 20, worker: 42, sales: 42, warehouse: 20 },
 };
 
 const INITIAL_STATE = {
@@ -229,7 +233,13 @@ export default function App() {
     let costs = { machines: 0, fixed: 0, labor: 0, strat: 0, total: 0 };
     const compCount = state.computerOn ? 1 : 0;
 
-    costs.machines = (state.smallMachine * p.small) + (state.mediumMachine * p.medium) + (state.largeMachine * p.large) + (compCount * p.comp);
+    const totalMachineCount = state.smallMachine + state.mediumMachine + state.largeMachine;
+    let machineUnitRate = MACHINE_COSTS[period] ?? 0;
+    if (ruleMode === 'senior') {
+      const multiplier = dice <= 3 ? 1.1 : 1.2;
+      machineUnitRate = Math.round(machineUnitRate * multiplier);
+    }
+    costs.machines = (totalMachineCount * machineUnitRate) + (compCount * p.comp);
 
     let workerRate = p.worker;
     let salesRate = p.sales;
@@ -253,7 +263,6 @@ export default function App() {
     costs.total = costs.machines + costs.labor + costs.strat + costs.fixed;
 
     const machCap = (state.smallMachine * 1) + (state.mediumMachine * 2) + (state.largeMachine * 4);
-    const totalMachineCount = state.smallMachine + state.mediumMachine + state.largeMachine;
     const compEffect = state.computerOn ? totalMachineCount : 0;
     const prodCap = machCap + compEffect + (state.education > 0 ? 1 : 0); 
     const salesCap = (state.salesmen * 2) + (state.ads * 2) + (state.education > 0 ? 1 : 0);
