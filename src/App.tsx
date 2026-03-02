@@ -118,6 +118,11 @@ const customStyles = `
 `;
 
 // --- 2. 定数 ---
+const DEPRECIATION = {
+  junior: { small: 10, medium: 13, large: 20 },
+  senior: { small: 20, medium: 26, large: 40 },
+};
+
 const PRICES = {
   2: { small: 10, medium: 13, large: 20, comp: 20, insurance: 5, edu: 20, rd: 20, ads: 20, worker: 33, sales: 33, warehouse: 20 },
   3: { small: 20, medium: 26, large: 40, comp: 20, insurance: 5, edu: 20, rd: 20, ads: 20, worker: 36, sales: 36, warehouse: 20 },
@@ -228,7 +233,7 @@ export default function App() {
 
     let workerRate = p.worker;
     let salesRate = p.sales;
-    if (period >= 3) {
+    if (ruleMode === 'senior' && period >= 3) {
       let multiplier = 1.0;
       if (dice <= 3) multiplier = 1.1;
       else multiplier = 1.2;
@@ -241,7 +246,9 @@ export default function App() {
     costs.strat = calcSpecial(state.education, p.edu) + calcSpecial(state.rd, p.rd) + calcSpecial(state.ads, p.ads);
 
     const safetyCount = (state.safetyWarehouse ? 1 : 0) + (state.safetySales ? 1 : 0);
-    costs.fixed = (state.insurance * p.insurance) + (safetyCount * p.warehouse);
+    const dep = DEPRECIATION[ruleMode];
+    const depCost = (state.smallMachine * dep.small) + (state.mediumMachine * dep.medium) + (state.largeMachine * dep.large);
+    costs.fixed = (state.insurance * p.insurance) + (safetyCount * p.warehouse) + depCost;
     
     costs.total = costs.machines + costs.labor + costs.strat + costs.fixed;
 
@@ -253,7 +260,7 @@ export default function App() {
     const priceComp = state.rd * 2;
 
     return { costs, prodCap, salesCap, priceComp };
-  }, [state, period, dice]);
+  }, [state, period, dice, ruleMode]);
 
   return (
     <div className="min-h-screen bg-gray-100 p-2 font-sans text-gray-800 pb-40">
