@@ -104,8 +104,17 @@ const customStyles = `
   }
   .modal-content {
     background: white; border-radius: 12px; padding: 20px;
-    max-width: 700px; width: 95%; max-height: 90vh; overflow-y: auto;
+    max-width: 720px; width: 95%; max-height: 92vh; overflow-y: auto;
     box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+  }
+
+  /* STRAC */
+  .strac-oval {
+    border-radius: 50%;
+    border: 2px solid #374151;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    background: white;
   }
 `;
 
@@ -126,7 +135,6 @@ const PRICES = {
   5: { comp: 20, insurance: 5, edu: 20, rd: 20, ads: 20, worker: 42, sales: 42, warehouse: 20 },
 };
 
-// 在庫評価単価
 const INVENTORY_PRICES: Record<string, { mat: number; wip: number; prod: number }> = {
   2:     { mat: 12, wip: 13, prod: 14 },
   other: { mat: 13, wip: 14, prod: 15 },
@@ -141,11 +149,8 @@ const INITIAL_STATE = {
   safetyWarehouse: false, safetySales: false,
 };
 
-// 容量制限
 const CAPACITY = {
-  materials: 22,
-  wip: 10,
-  products: 22,
+  materials: 22, wip: 10, products: 22,
   autoSafetyThreshold: 10,
 };
 
@@ -195,12 +200,11 @@ const SafetyTray = ({ count, typeClass }: { count: number; typeClass: string }) 
   );
 };
 
-// 次繰盤の各エリア（研究開発投入 / 研究開発完成）
+// 次繰盤の各エリア
 const NextKuriSection = ({
   title, chips, onUpdate,
 }: {
-  title: string;
-  chips: ChipCounts;
+  title: string; chips: ChipCounts;
   onUpdate: (color: ChipColor, delta: number) => void;
 }) => {
   const chipDefs: { color: ChipColor; label: string; cls: string }[] = [
@@ -238,7 +242,7 @@ const SliderRow = ({
   min: number; max: number; note?: string;
 }) => (
   <div className="flex items-center gap-2">
-    <label className="text-xs font-bold text-gray-700 w-20 shrink-0">{label}</label>
+    <label className="text-xs font-bold text-gray-700 w-24 shrink-0">{label}</label>
     <input
       type="range" min={min} max={max} value={value}
       onChange={e => onChange(parseInt(e.target.value))}
@@ -257,7 +261,7 @@ const DecimalSliderRow = ({
   min: number; max: number; step?: number;
 }) => (
   <div className="flex items-center gap-2">
-    <label className="text-xs font-bold text-blue-700 w-20 shrink-0">{label}</label>
+    <label className="text-xs font-bold text-blue-700 w-24 shrink-0">{label}</label>
     <input
       type="range" min={min} max={max} step={step} value={value}
       onChange={e => onChange(parseFloat(e.target.value))}
@@ -269,18 +273,21 @@ const DecimalSliderRow = ({
 
 // 自動計算値表示行
 const CalcRow = ({
-  label, formula, value, highlight = false,
+  label, formula, value, highlight = false, ceil = false,
 }: {
-  label: string; formula: string; value: number | string; highlight?: boolean;
-}) => (
-  <div className={`flex items-center gap-2 py-0.5 ${highlight ? 'bg-blue-50 rounded px-1' : ''}`}>
-    <span className="text-xs font-bold text-gray-700 w-20 shrink-0">{label}</span>
-    <span className="text-[10px] text-gray-400 flex-1">{formula}</span>
-    <span className={`font-mono font-bold text-sm w-16 text-right shrink-0 ${highlight ? 'text-blue-700' : 'text-gray-700'}`}>
-      {typeof value === 'number' ? value.toFixed(1) : value}
-    </span>
-  </div>
-);
+  label: string; formula: string; value: number; highlight?: boolean; ceil?: boolean;
+}) => {
+  const disp = ceil ? Math.ceil(value) : value % 1 === 0 ? value : value.toFixed(1);
+  return (
+    <div className={`flex items-center gap-2 py-0.5 ${highlight ? 'bg-blue-50 rounded px-1' : ''}`}>
+      <span className="text-xs font-bold text-gray-700 w-24 shrink-0">{label}</span>
+      <span className="text-[10px] text-gray-400 flex-1">{formula}</span>
+      <span className={`font-mono font-bold text-sm w-16 text-right shrink-0 ${highlight ? 'text-blue-700' : 'text-gray-700'}`}>
+        {disp}
+      </span>
+    </div>
+  );
+};
 
 // --- 4. メインアプリ ---
 export default function App() {
@@ -289,7 +296,7 @@ export default function App() {
   const [ruleMode, setRuleMode] = useState<'junior' | 'senior'>('junior');
   const [state, setState] = useState(INITIAL_STATE);
 
-  // シニア: 次繰盤チップ（研究開発投入 / 研究開発完成）
+  // シニア: 次繰盤チップ
   const [nextKuriChips, setNextKuriChips] = useState<Record<NextKuriArea, ChipCounts>>({
     rdInput:    { red: 0, blue: 0, yellow: 0 },
     rdComplete: { red: 0, blue: 0, yellow: 0 },
@@ -300,11 +307,13 @@ export default function App() {
   const [longTermLoan, setLongTermLoan] = useState(0);
   const [shortTermLoan, setShortTermLoan] = useState(0);
   const [specialLoss, setSpecialLoss] = useState(0);
+  const [nextPeriodRetained, setNextPeriodRetained] = useState(0); // 次期繰越利益
+  const [taxProvision, setTaxProvision] = useState(0);             // 納税充当金
 
   // 損益分析スライダー
-  const [targetProfitG, setTargetProfitG] = useState(0);   // G: -300〜+500
-  const [priceP, setPriceP] = useState(30.0);               // P: 20.0〜40.0
-  const [varCostV, setVarCostV] = useState(13.0);           // V: 10.0〜16.0
+  const [targetProfitG, setTargetProfitG] = useState(0);
+  const [priceP, setPriceP] = useState(30.0);
+  const [varCostV, setVarCostV] = useState(13.0);
 
   // B/S・P/L モーダル
   const [showBSPL, setShowBSPL] = useState(false);
@@ -316,7 +325,6 @@ export default function App() {
       const rawVal = typeof prev[key] === 'number' ? (prev[key] as number) : 0;
       let newVal = Math.max(0, rawVal + delta);
 
-      // 容量制限
       if (key === 'wip' && newVal > CAPACITY.wip) return prev;
       if (key === 'materials' && newVal > CAPACITY.materials) return prev;
       if (key === 'products' && newVal > CAPACITY.products) return prev;
@@ -324,41 +332,33 @@ export default function App() {
 
       const newState: typeof INITIAL_STATE = { ...prev, [key]: newVal };
 
-      // 10個超で無災害チェックを自動ON
-      if (key === 'materials' && newVal > CAPACITY.autoSafetyThreshold) {
-        newState.safetyWarehouse = true;
-      }
-      if (key === 'products' && newVal > CAPACITY.autoSafetyThreshold) {
-        newState.safetySales = true;
-      }
+      if (key === 'materials' && newVal > CAPACITY.autoSafetyThreshold) newState.safetyWarehouse = true;
+      if (key === 'products'  && newVal > CAPACITY.autoSafetyThreshold) newState.safetySales = true;
 
       return newState;
     });
   };
 
-  const toggleSafety = (key: 'safetyWarehouse' | 'safetySales') => {
+  const toggleSafety = (key: 'safetyWarehouse' | 'safetySales') =>
     setState(prev => ({ ...prev, [key]: !prev[key] }));
-  };
 
-  const toggleComputer = () => {
+  const toggleComputer = () =>
     setState(prev => ({ ...prev, computerOn: !prev.computerOn }));
-  };
 
-  const updateNextKuriChip = (area: NextKuriArea, color: ChipColor, delta: number) => {
+  const updateNextKuriChip = (area: NextKuriArea, color: ChipColor, delta: number) =>
     setNextKuriChips(prev => ({
       ...prev,
       [area]: { ...prev[area], [color]: Math.max(0, prev[area][color] + delta) },
     }));
-  };
 
   const results = useMemo(() => {
     // @ts-ignore
     const p = PRICES[period];
     let costs = { machines: 0, fixed: 0, labor: 0, strat: 0, total: 0 };
     const compCount = state.computerOn ? 1 : 0;
-
-    // 設備費
     const totalMachineCount = state.smallMachine + state.mediumMachine + state.largeMachine;
+
+    // 機械単価（B/S用にも使う）
     let machineUnitRate = MACHINE_COSTS[period] ?? 0;
     if (ruleMode === 'senior') {
       const multiplier = dice <= 3 ? 1.1 : 1.2;
@@ -366,60 +366,73 @@ export default function App() {
     }
     costs.machines = (totalMachineCount * machineUnitRate) + (compCount * p.comp);
 
-    // 人件費
     let workerRate = p.worker;
-    let salesRate = p.sales;
+    let salesRate  = p.sales;
     if (ruleMode === 'senior' && period >= 3) {
       const multiplier = dice <= 3 ? 1.1 : 1.2;
       workerRate = Math.round(p.worker * multiplier);
-      salesRate = Math.round(p.sales * multiplier);
+      salesRate  = Math.round(p.sales  * multiplier);
     }
     costs.labor = (state.workers * workerRate) + (state.salesmen * salesRate);
 
-    // 戦略費
-    const calcSpecial = (count: number, price: number) => (period === 2 && count > 0) ? price : count * price;
+    const calcSpecial = (count: number, price: number) =>
+      (period === 2 && count > 0) ? price : count * price;
     costs.strat = calcSpecial(state.education, p.edu) + calcSpecial(state.rd, p.rd) + calcSpecial(state.ads, p.ads);
 
-    // 固定費 (減価償却 + 保険 + 倉庫 + 利息 + 特別損失)
     const safetyCount = (state.safetyWarehouse ? 1 : 0) + (state.safetySales ? 1 : 0);
     const dep = DEPRECIATION[ruleMode];
     const depCost = (state.smallMachine * dep.small) + (state.mediumMachine * dep.medium) + (state.largeMachine * dep.large);
-    const ltlInterest = Math.round(longTermLoan * 0.1);
+    const ltlInterest = Math.round(longTermLoan  * 0.1);
     const stlInterest = Math.round(shortTermLoan * 0.2);
     costs.fixed = (state.insurance * p.insurance) + (safetyCount * p.warehouse) + depCost + ltlInterest + stlInterest + specialLoss;
-
     costs.total = costs.machines + costs.labor + costs.strat + costs.fixed;
 
-    // 生産・販売能力
-    const machCap = (state.smallMachine * 1) + (state.mediumMachine * 2) + (state.largeMachine * 4);
+    const machCap    = (state.smallMachine * 1) + (state.mediumMachine * 2) + (state.largeMachine * 4);
     const compEffect = state.computerOn ? totalMachineCount : 0;
-    const prodCap = machCap + compEffect + (state.education > 0 ? 1 : 0);
-    const salesCap = (state.salesmen * 2) + (state.ads * 2) + (state.education > 0 ? 1 : 0);
-    const priceComp = state.rd * 2;
+    const prodCap    = machCap + compEffect + (state.education > 0 ? 1 : 0);
+    const salesCap   = (state.salesmen * 2) + (state.ads * 2) + (state.education > 0 ? 1 : 0);
+    const priceComp  = state.rd * 2;
 
-    // 仕入可能個数（シニア: 倉庫の空き容量）
-    const purchaseCap = CAPACITY.materials - state.materials;
+    // シニアの仕入可能個数 = 製造能力と同じ
+    const purchaseCap = prodCap;
 
-    // 在庫評価額
     const invP = period === 2 ? INVENTORY_PRICES[2] : INVENTORY_PRICES.other;
-    const inventoryValue =
-      (state.materials * invP.mat) + (state.wip * invP.wip) + (state.products * invP.prod);
+    const inventoryValue = (state.materials * invP.mat) + (state.wip * invP.wip) + (state.products * invP.prod);
 
-    return { costs, prodCap, salesCap, priceComp, purchaseCap, inventoryValue, invP, ltlInterest, stlInterest };
+    // B/S用資産価値
+    const machineValue  = totalMachineCount * machineUnitRate;
+    const adsValue      = calcSpecial(state.ads,       p.ads);
+    const rdValue       = calcSpecial(state.rd,        p.rd);
+    const eduValue      = calcSpecial(state.education, p.edu);
+
+    return {
+      costs, prodCap, salesCap, priceComp, purchaseCap,
+      inventoryValue, invP, ltlInterest, stlInterest,
+      machineValue, adsValue, rdValue, eduValue,
+    };
   }, [state, period, dice, ruleMode, longTermLoan, shortTermLoan, specialLoss]);
 
   // 損益分析（自動計算）
-  const marginM   = priceP - varCostV;                                         // M = P - V
-  const totalMQ   = targetProfitG + results.costs.total;                       // MQ = G + F
-  const targetQ   = marginM > 0 ? totalMQ / marginM : 0;                      // Q = MQ / M
-  const revenueQ  = priceP * targetQ;                                          // PQ = P × Q
-  const varTotalQ = varCostV * targetQ;                                        // VQ = V × Q
-  const breakQ0   = marginM > 0 ? results.costs.total / marginM : 0;          // Q0 = F / M
+  const marginM    = priceP - varCostV;
+  const totalMQ    = targetProfitG + results.costs.total;            // MQ = G + F
+  const targetQ    = marginM > 0 ? totalMQ / marginM : 0;           // Q  = MQ / M
+  const revenueQ   = priceP * targetQ;                               // PQ = P × Q
+  const varTotalQ  = varCostV * targetQ;                             // VQ = V × Q
+  const breakQ0    = marginM > 0 ? results.costs.total / marginM : 0; // Q0 = F / M
+
+  // STRAC 比率
+  const vRate  = priceP > 0 ? Math.round(varCostV / priceP * 100) : 0;
+  const mRate  = 100 - vRate;
+  const fmRate = totalMQ > 0 ? Math.round(results.costs.total / totalMQ * 100) : 0;
+  const gmRate = 100 - fmRate;
 
   // B/S 計算
-  const totalAssets     = cash + results.inventoryValue;
-  const totalLiabilities = shortTermLoan + longTermLoan;
-  const equity          = totalAssets - totalLiabilities;
+  const currentAssets    = cash + results.inventoryValue;
+  const deferredAssets   = results.adsValue + results.rdValue + results.eduValue;
+  const totalAssets      = currentAssets + results.machineValue + deferredAssets;
+  const totalLiabilities = taxProvision + shortTermLoan + longTermLoan;
+  const selfCapital      = totalAssets - totalLiabilities;
+  const capitalC         = selfCapital - nextPeriodRetained;
 
   return (
     <div className="min-h-screen bg-gray-100 p-2 font-sans text-gray-800 pb-48">
@@ -427,9 +440,7 @@ export default function App() {
 
       {/* --- コントロールパネル --- */}
       <div className="max-w-4xl mx-auto bg-white rounded-lg shadow p-3 mb-4 flex flex-wrap gap-4 items-center justify-between border-t-4 border-blue-600">
-        <div>
-          <h1 className="text-lg font-bold text-gray-800">会社盤 シミュレーター</h1>
-        </div>
+        <h1 className="text-lg font-bold text-gray-800">会社盤 シミュレーター</h1>
         <div className="flex gap-4 items-center flex-wrap">
           <div className="flex bg-gray-100 rounded p-1">
             <button onClick={() => setRuleMode('junior')} className={`px-3 py-1 text-xs rounded ${ruleMode === 'junior' ? 'bg-white shadow font-bold text-blue-600' : 'text-gray-500'}`}>ジュニア</button>
@@ -457,26 +468,18 @@ export default function App() {
 
       {/* --- シニア: 次繰盤 --- */}
       {ruleMode === 'senior' && (
-        <div className="max-w-4xl mx-auto mb-4 bg-green-50 rounded-xl border-2 border-green-400 p-3 shadow-lg relative">
+        <div className="max-w-4xl mx-auto mb-4 bg-green-50 rounded-xl border-2 border-green-400 p-3 shadow-lg">
           <div className="text-center text-xs font-bold text-green-800 bg-green-100 border border-green-300 rounded-lg py-1 mb-3">
             次繰盤 ― 固定費不算入
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <NextKuriSection
-              title="研究開発投入"
-              chips={nextKuriChips.rdInput}
-              onUpdate={(c, d) => updateNextKuriChip('rdInput', c, d)}
-            />
-            <NextKuriSection
-              title="研究開発完成"
-              chips={nextKuriChips.rdComplete}
-              onUpdate={(c, d) => updateNextKuriChip('rdComplete', c, d)}
-            />
+            <NextKuriSection title="研究開発投入" chips={nextKuriChips.rdInput}    onUpdate={(c, d) => updateNextKuriChip('rdInput',    c, d)} />
+            <NextKuriSection title="研究開発完成" chips={nextKuriChips.rdComplete} onUpdate={(c, d) => updateNextKuriChip('rdComplete', c, d)} />
           </div>
         </div>
       )}
 
-      {/* --- メインボード（会社盤） --- */}
+      {/* --- 会社盤 --- */}
       <div className="max-w-4xl mx-auto relative bg-[#FFD700] rounded-xl p-4 shadow-xl border-4 border-yellow-400 select-none">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
 
@@ -487,16 +490,12 @@ export default function App() {
               <span>無災害(倉)</span>
               <div className={`w-4 h-4 border ${state.safetyWarehouse ? 'bg-blue-500 border-blue-600' : 'bg-white border-gray-400'}`}></div>
             </div>
-
-            {/* 仕入可能個数（シニアのみ） */}
             {ruleMode === 'senior' && (
               <div className="mt-8 mb-1 bg-orange-50 border border-orange-200 rounded px-2 py-0.5 text-center">
                 <span className="text-[10px] text-orange-600 font-bold">仕入可能</span>
                 <span className="text-sm font-bold text-orange-700 ml-1">{results.purchaseCap}個</span>
-                <span className="text-[9px] text-gray-400 ml-1">(最大{CAPACITY.materials})</span>
               </div>
             )}
-
             <div className="flex-1 flex items-center justify-center p-4">
               {state.safetyWarehouse ? (
                 <SafetyTray count={state.materials} typeClass="token-mat" />
@@ -522,27 +521,24 @@ export default function App() {
               <div className={`token-pc ${state.computerOn ? '' : 'token-pc-off'}`}>PC</div>
               <span className="text-[9px] font-bold text-gray-600 mt-1">{state.computerOn ? 'ON' : 'OFF'}</span>
             </div>
-
-            {/* 製造能力 */}
             <div className="mt-8 mb-1 bg-blue-50 border border-blue-200 rounded px-2 py-0.5 text-center">
               <span className="text-[10px] text-blue-600 font-bold">製造能力</span>
               <span className="text-sm font-bold text-blue-700 ml-1">{results.prodCap}個</span>
             </div>
-
             <div className="flex flex-col items-center gap-2 py-2 border-b border-gray-400/30">
               <div className="flex flex-wrap justify-center gap-2 min-h-[30px] items-end">
-                {[...Array(state.smallMachine)].map((_, i) => <div key={`s${i}`} className="hex-base mach-small" />)}
+                {[...Array(state.smallMachine)].map((_, i)  => <div key={`s${i}`} className="hex-base mach-small" />)}
                 {[...Array(state.mediumMachine)].map((_, i) => <div key={`m${i}`} className="hex-base mach-medium" />)}
-                {[...Array(state.largeMachine)].map((_, i) => (
+                {[...Array(state.largeMachine)].map((_, i)  => (
                   <div key={`l${i}`} className="mach-large-wrapper">
                     <div className="mach-large-part"></div><div className="mach-large-part"></div>
                   </div>
                 ))}
               </div>
               <div className="flex gap-1 mt-2">
-                <MiniControl label="小型" count={state.smallMachine} onInc={() => update('smallMachine', 1)} onDec={() => update('smallMachine', -1)} />
+                <MiniControl label="小型" count={state.smallMachine}  onInc={() => update('smallMachine',  1)} onDec={() => update('smallMachine',  -1)} />
                 <MiniControl label="中型" count={state.mediumMachine} onInc={() => update('mediumMachine', 1)} onDec={() => update('mediumMachine', -1)} />
-                <MiniControl label="大型" count={state.largeMachine} onInc={() => update('largeMachine', 1)} onDec={() => update('largeMachine', -1)} />
+                <MiniControl label="大型" count={state.largeMachine}  onInc={() => update('largeMachine',  1)} onDec={() => update('largeMachine',  -1)} />
               </div>
             </div>
             <div className="flex-1 flex flex-col items-center justify-center py-4">
@@ -585,13 +581,10 @@ export default function App() {
               <span>無災害(営)</span>
               <div className={`w-4 h-4 border ${state.safetySales ? 'bg-blue-500 border-blue-600' : 'bg-white border-gray-400'}`}></div>
             </div>
-
-            {/* 販売個数 */}
             <div className="mt-8 mb-1 bg-green-50 border border-green-200 rounded px-2 py-0.5 text-center">
               <span className="text-[10px] text-green-600 font-bold">販売個数</span>
               <span className="text-sm font-bold text-green-700 ml-1">{results.salesCap}個</span>
             </div>
-
             <div className="flex-1 flex flex-col items-center justify-center py-4">
               {state.safetySales ? (
                 <SafetyTray count={state.products} typeClass="token-prod" />
@@ -646,24 +639,13 @@ export default function App() {
           在庫評価額（{period}期: 材料@{results.invP.mat} / 仕掛品@{results.invP.wip} / 製品@{results.invP.prod}）
         </h3>
         <div className="flex flex-wrap gap-4 items-center text-sm">
-          <span className="text-gray-600">
-            材料 <span className="font-bold text-gray-800">{state.materials}</span>個
-            × {results.invP.mat} = <span className="font-bold text-indigo-700">{state.materials * results.invP.mat}</span>
-          </span>
+          <span className="text-gray-600">材料 <b>{state.materials}</b>個 × {results.invP.mat} = <b className="text-indigo-700">{state.materials * results.invP.mat}</b></span>
           <span className="text-gray-400">+</span>
-          <span className="text-gray-600">
-            仕掛品 <span className="font-bold text-gray-800">{state.wip}</span>個
-            × {results.invP.wip} = <span className="font-bold text-indigo-700">{state.wip * results.invP.wip}</span>
-          </span>
+          <span className="text-gray-600">仕掛品 <b>{state.wip}</b>個 × {results.invP.wip} = <b className="text-indigo-700">{state.wip * results.invP.wip}</b></span>
           <span className="text-gray-400">+</span>
-          <span className="text-gray-600">
-            製品 <span className="font-bold text-gray-800">{state.products}</span>個
-            × {results.invP.prod} = <span className="font-bold text-indigo-700">{state.products * results.invP.prod}</span>
-          </span>
+          <span className="text-gray-600">製品 <b>{state.products}</b>個 × {results.invP.prod} = <b className="text-indigo-700">{state.products * results.invP.prod}</b></span>
           <span className="text-gray-400">=</span>
-          <span className="text-lg font-bold text-indigo-800 bg-indigo-50 px-3 py-0.5 rounded border border-indigo-200">
-            合計 {results.inventoryValue}
-          </span>
+          <span className="text-lg font-bold text-indigo-800 bg-indigo-50 px-3 py-0.5 rounded border border-indigo-200">合計 {results.inventoryValue}</span>
         </div>
       </div>
 
@@ -671,29 +653,13 @@ export default function App() {
       <div className="max-w-4xl mx-auto mt-4 bg-white rounded-lg border border-gray-200 p-4 shadow">
         <h3 className="text-xs font-bold text-gray-700 mb-3">財務入力</h3>
         <div className="flex flex-col gap-3">
-          <SliderRow
-            label="現金"
-            value={cash} onChange={setCash}
-            min={0} max={700}
-          />
-          <SliderRow
-            label="長期借入"
-            value={longTermLoan} onChange={setLongTermLoan}
-            min={0} max={700}
-            note={`利息 → ${results.ltlInterest}`}
-          />
-          <SliderRow
-            label="短期借入"
-            value={shortTermLoan} onChange={setShortTermLoan}
-            min={0} max={700}
-            note={`利息 → ${results.stlInterest}`}
-          />
-          <SliderRow
-            label="特別損失"
-            value={specialLoss} onChange={setSpecialLoss}
-            min={0} max={60}
-            note="→ 固定費算入"
-          />
+          <SliderRow label="現金" value={cash} onChange={setCash} min={0} max={700} />
+          <SliderRow label="長期借入" value={longTermLoan} onChange={setLongTermLoan} min={0} max={700} note={`利息 → ${results.ltlInterest}`} />
+          <SliderRow label="短期借入" value={shortTermLoan} onChange={setShortTermLoan} min={0} max={700} note={`利息 → ${results.stlInterest}`} />
+          <SliderRow label="特別損失" value={specialLoss} onChange={setSpecialLoss} min={0} max={60} note="→ 固定費算入" />
+          <hr className="border-gray-200" />
+          <SliderRow label="次期繰越利益" value={nextPeriodRetained} onChange={setNextPeriodRetained} min={-300} max={400} />
+          <SliderRow label="納税充当金" value={taxProvision} onChange={setTaxProvision} min={0} max={200} />
         </div>
       </div>
 
@@ -701,32 +667,16 @@ export default function App() {
       <div className="max-w-4xl mx-auto mt-4 bg-white rounded-lg border border-blue-200 p-4 shadow">
         <h3 className="text-xs font-bold text-blue-700 mb-3">損益分析</h3>
         <div className="flex flex-col gap-2">
-          {/* スライダー入力 */}
-          <SliderRow
-            label="[G] 利益目標"
-            value={targetProfitG} onChange={setTargetProfitG}
-            min={-300} max={500}
-          />
-          <DecimalSliderRow
-            label="[P] 販売価格"
-            value={priceP} onChange={setPriceP}
-            min={20} max={40} step={0.5}
-          />
-          <DecimalSliderRow
-            label="[V] 変動費単価"
-            value={varCostV} onChange={setVarCostV}
-            min={10} max={16} step={0.5}
-          />
-
+          <SliderRow label="[G] 利益目標" value={targetProfitG} onChange={setTargetProfitG} min={-300} max={500} />
+          <DecimalSliderRow label="[P] 販売価格" value={priceP} onChange={setPriceP} min={20} max={40} step={0.5} />
+          <DecimalSliderRow label="[V] 変動費単価" value={varCostV} onChange={setVarCostV} min={10} max={16} step={0.5} />
           <hr className="border-blue-100 my-1" />
-
-          {/* 自動計算値 */}
-          <CalcRow label="[M] 限界利益率" formula="P − V" value={marginM} highlight />
-          <CalcRow label="[MQ] 限界利益計" formula="G + 固定費" value={totalMQ} highlight />
-          <CalcRow label="[Q] 目標販売数" formula="MQ ÷ M" value={targetQ} />
-          <CalcRow label="[Q0] 損益分岐点" formula="固定費 ÷ M" value={breakQ0} />
-          <CalcRow label="[PQ] 売上高" formula="P × Q" value={revenueQ} />
-          <CalcRow label="[VQ] 変動費計" formula="V × Q" value={varTotalQ} />
+          <CalcRow label="[M] 限界利益率" formula="P − V"      value={marginM}   highlight />
+          <CalcRow label="[MQ] 限界利益計" formula="G + 固定費" value={totalMQ}   highlight />
+          <CalcRow label="[Q] 目標販売数"  formula="MQ ÷ M"    value={targetQ}   ceil />
+          <CalcRow label="[Q0] 損益分岐点" formula="固定費 ÷ M" value={breakQ0}   ceil />
+          <CalcRow label="[PQ] 売上高"     formula="P × Q"     value={revenueQ} />
+          <CalcRow label="[VQ] 変動費計"   formula="V × Q"     value={varTotalQ} />
         </div>
       </div>
 
@@ -743,18 +693,10 @@ export default function App() {
             </div>
           </div>
           <div className="flex gap-3 items-center">
-            <div className="bg-gray-800 px-2 py-1 rounded text-xs">
-              製造: <span className="font-bold text-blue-400 text-sm">{results.prodCap}</span>
-            </div>
-            <div className="bg-gray-800 px-2 py-1 rounded text-xs">
-              販売: <span className="font-bold text-green-400 text-sm">{results.salesCap}</span>
-            </div>
-            <div className="bg-gray-800 px-2 py-1 rounded text-xs">
-              価格: <span className="font-bold text-red-400 text-sm">{results.priceComp}</span>
-            </div>
-            <div className="bg-indigo-900 px-2 py-1 rounded text-xs border border-indigo-600">
-              在庫評価: <span className="font-bold text-indigo-300 text-sm">{results.inventoryValue}</span>
-            </div>
+            <div className="bg-gray-800 px-2 py-1 rounded text-xs">製造: <span className="font-bold text-blue-400 text-sm">{results.prodCap}</span></div>
+            <div className="bg-gray-800 px-2 py-1 rounded text-xs">販売: <span className="font-bold text-green-400 text-sm">{results.salesCap}</span></div>
+            <div className="bg-gray-800 px-2 py-1 rounded text-xs">価格: <span className="font-bold text-red-400 text-sm">{results.priceComp}</span></div>
+            <div className="bg-indigo-900 px-2 py-1 rounded text-xs border border-indigo-600">在庫評価: <span className="font-bold text-indigo-300 text-sm">{results.inventoryValue}</span></div>
             <div className="bg-green-800 px-3 py-1 rounded border border-green-600 ml-1">
               <span className="text-[10px] text-green-300 block leading-none">固定費計(F)</span>
               <span className="text-xl font-mono font-bold">{results.costs.total}</span>
@@ -767,98 +709,131 @@ export default function App() {
       {showBSPL && (
         <div className="modal-overlay" onClick={() => setShowBSPL(false)}>
           <div className="modal-content" onClick={e => e.stopPropagation()}>
-            {/* タブ */}
+
+            {/* タブヘッダー */}
             <div className="flex items-center justify-between mb-4">
               <div className="flex gap-2">
-                <button
-                  onClick={() => setBsplTab('pl')}
-                  className={`px-4 py-1.5 text-sm font-bold rounded-lg transition-colors ${bsplTab === 'pl' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-                >
-                  P/L（損益計算書）
+                <button onClick={() => setBsplTab('pl')}
+                  className={`px-4 py-1.5 text-sm font-bold rounded-lg transition-colors ${bsplTab === 'pl' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                  P/L（MQ会計表）
                 </button>
-                <button
-                  onClick={() => setBsplTab('bs')}
-                  className={`px-4 py-1.5 text-sm font-bold rounded-lg transition-colors ${bsplTab === 'bs' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-                >
-                  B/S（貸借対照表）
+                <button onClick={() => setBsplTab('bs')}
+                  className={`px-4 py-1.5 text-sm font-bold rounded-lg transition-colors ${bsplTab === 'bs' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                  B/S（バランスシート）
                 </button>
               </div>
-              <button
-                onClick={() => setShowBSPL(false)}
-                className="w-8 h-8 flex items-center justify-center bg-gray-200 hover:bg-gray-300 rounded-full text-gray-600 font-bold text-lg"
-              >
-                ×
-              </button>
+              <button onClick={() => setShowBSPL(false)}
+                className="w-8 h-8 flex items-center justify-center bg-gray-200 hover:bg-gray-300 rounded-full text-gray-600 font-bold text-lg">×</button>
             </div>
 
-            {/* P/L */}
+            {/* ========== P/L (STRAC / MQ会計表) ========== */}
             {bsplTab === 'pl' && (
               <div>
-                <h2 className="text-base font-bold text-center text-blue-800 mb-4 border-b-2 border-blue-200 pb-2">
-                  損益計算書（P/L） — {period}期
+                <h2 className="text-sm font-bold text-center text-blue-800 mb-3 border-b-2 border-blue-200 pb-2">
+                  MQ会計表（STRAC） — {period}期
                 </h2>
-                <table className="w-full border-collapse text-sm">
-                  <tbody>
-                    <tr className="border-b border-gray-200">
-                      <td className="py-2 px-3 text-gray-500 text-xs w-1/4">売上高</td>
-                      <td className="py-2 px-3 font-bold text-xs text-gray-500">[PQ] = P × Q</td>
-                      <td className="py-2 px-3 font-mono font-bold text-right text-base">{revenueQ.toFixed(1)}</td>
-                    </tr>
-                    <tr className="border-b border-gray-200 bg-gray-50">
-                      <td className="py-2 px-3 text-gray-500 text-xs pl-6">変動費</td>
-                      <td className="py-2 px-3 font-bold text-xs text-gray-500">[VQ] = V × Q</td>
-                      <td className="py-2 px-3 font-mono font-bold text-right text-base text-red-600">△ {varTotalQ.toFixed(1)}</td>
-                    </tr>
-                    <tr className="border-b-2 border-blue-300 bg-blue-50">
-                      <td className="py-2 px-3 font-bold text-blue-800">限界利益</td>
-                      <td className="py-2 px-3 font-bold text-xs text-blue-600">[MQ] = G + F</td>
-                      <td className="py-2 px-3 font-mono font-bold text-right text-lg text-blue-800">{totalMQ.toFixed(1)}</td>
-                    </tr>
-                    <tr className="border-b border-gray-200 bg-gray-50">
-                      <td className="py-2 px-3 text-gray-500 text-xs pl-6">固定費</td>
-                      <td className="py-2 px-3 font-bold text-xs text-gray-500">[F]</td>
-                      <td className="py-2 px-3 font-mono font-bold text-right text-base text-red-600">△ {results.costs.total}</td>
-                    </tr>
-                    <tr className="bg-green-50">
-                      <td className="py-3 px-3 font-bold text-green-800 text-base">当期利益</td>
-                      <td className="py-3 px-3 font-bold text-xs text-green-600">[G]</td>
-                      <td className={`py-3 px-3 font-mono font-bold text-right text-xl ${targetProfitG >= 0 ? 'text-green-700' : 'text-red-700'}`}>
-                        {targetProfitG >= 0 ? '' : '△ '}{Math.abs(targetProfitG)}
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
 
-                <div className="mt-4 grid grid-cols-3 gap-2 text-xs">
-                  <div className="bg-gray-50 rounded p-2 text-center border border-gray-200">
-                    <div className="text-gray-500">販売価格 [P]</div>
-                    <div className="font-bold text-base">{priceP.toFixed(1)}</div>
+                <div className="flex gap-3 items-stretch">
+
+                  {/* 左: 単位値パネル */}
+                  <div className="flex flex-col justify-between border border-gray-300 rounded-lg p-3 bg-gray-50 w-28 shrink-0 text-center">
+                    <div className="space-y-2 border-b border-gray-300 pb-3">
+                      <div>
+                        <p className="text-[10px] text-gray-400">①P</p>
+                        <p className="font-mono font-bold text-lg text-blue-700">{priceP.toFixed(1)}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-gray-400">②V</p>
+                        <p className="font-mono font-bold text-lg text-red-600">{varCostV.toFixed(1)}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-gray-400">③M</p>
+                        <p className="font-mono font-bold text-lg text-green-700">{marginM.toFixed(1)}</p>
+                      </div>
+                    </div>
+                    <div className="py-3 border-b border-gray-300">
+                      <p className="text-[10px] text-gray-400">⑤PQ</p>
+                      <p className="font-mono font-bold text-xl">{Math.ceil(revenueQ)}</p>
+                    </div>
+                    <div className="pt-3">
+                      <p className="text-[10px] text-gray-400">④Q</p>
+                      <p className="font-mono font-bold text-xl">{Math.ceil(targetQ)}</p>
+                    </div>
                   </div>
-                  <div className="bg-gray-50 rounded p-2 text-center border border-gray-200">
-                    <div className="text-gray-500">変動費単価 [V]</div>
-                    <div className="font-bold text-base">{varCostV.toFixed(1)}</div>
-                  </div>
-                  <div className="bg-blue-50 rounded p-2 text-center border border-blue-200">
-                    <div className="text-blue-600">限界利益率 [M]</div>
-                    <div className="font-bold text-base text-blue-700">{marginM.toFixed(1)}</div>
-                  </div>
-                  <div className="bg-gray-50 rounded p-2 text-center border border-gray-200">
-                    <div className="text-gray-500">目標販売数 [Q]</div>
-                    <div className="font-bold text-base">{targetQ.toFixed(1)}</div>
-                  </div>
-                  <div className="bg-orange-50 rounded p-2 text-center border border-orange-200">
-                    <div className="text-orange-600">損益分岐点 [Q0]</div>
-                    <div className="font-bold text-base text-orange-700">{breakQ0.toFixed(1)}</div>
-                  </div>
-                  <div className="bg-gray-50 rounded p-2 text-center border border-gray-200">
-                    <div className="text-gray-500">固定費 [F]</div>
-                    <div className="font-bold text-base">{results.costs.total}</div>
+
+                  {/* MQ会計表 本体 */}
+                  <div className="flex-1 border-2 border-gray-700 rounded-lg overflow-hidden">
+                    <div className="bg-gray-700 text-white text-center text-xs font-bold py-1 tracking-widest">MQ会計表</div>
+
+                    {/* 上段: 変動費エリア (VQ) */}
+                    <div className="flex items-center gap-3 border-b-2 border-gray-700 p-3 bg-red-50/40" style={{minHeight: '100px'}}>
+                      <div className="strac-oval w-16 h-16 shrink-0">
+                        <span className="text-[10px] text-gray-500">V率</span>
+                        <span className="font-bold text-base text-red-600">{vRate}%</span>
+                      </div>
+                      <div className="flex-1 text-right">
+                        <p className="text-[10px] text-gray-400 font-bold">⑥VQ（変動費）</p>
+                        <p className="font-mono font-bold text-3xl text-red-700">{Math.ceil(varTotalQ)}</p>
+                      </div>
+                    </div>
+
+                    {/* 下段: 限界利益エリア (MQ) */}
+                    <div className="flex" style={{minHeight: '160px'}}>
+
+                      {/* 左半: m率 + MQ */}
+                      <div className="border-r-2 border-gray-700 p-3 flex flex-col items-center justify-between bg-green-50/40" style={{width: '42%'}}>
+                        <div className="text-center">
+                          <p className="text-[10px] text-gray-400 font-bold">⑦MQ（限界利益）</p>
+                          <p className="font-mono font-bold text-2xl text-green-700">{Math.ceil(totalMQ)}</p>
+                        </div>
+                        <div className="strac-oval w-16 h-16">
+                          <span className="text-[10px] text-gray-500">m率</span>
+                          <span className="font-bold text-base text-green-700">{mRate}%</span>
+                        </div>
+                      </div>
+
+                      {/* 右半: F + G 縦分割 */}
+                      <div className="flex-1 flex flex-col">
+
+                        {/* ⑧F 固定費 */}
+                        <div className="flex-1 border-b-2 border-gray-700 p-2 flex items-center justify-between bg-orange-50/40">
+                          <div>
+                            <p className="text-[10px] text-gray-400 font-bold">⑧F（固定費）</p>
+                            <p className="font-mono font-bold text-2xl text-orange-700">{results.costs.total}</p>
+                          </div>
+                          <div className="text-right text-[10px]">
+                            <p className="font-bold text-gray-600">f/m比率</p>
+                            <p className="text-gray-400">損益分岐点比率</p>
+                            <p className="font-bold text-lg text-orange-600">{fmRate}%</p>
+                          </div>
+                        </div>
+
+                        {/* ⑨G 利益 */}
+                        <div className="flex-1 p-2 flex items-center justify-between bg-blue-50/40">
+                          <div className="flex items-center gap-2">
+                            <div className="strac-oval w-14 h-14 shrink-0">
+                              <span className="text-[9px] text-gray-400">⑨G</span>
+                              <span className="font-bold text-sm text-blue-700">{gmRate}%</span>
+                            </div>
+                            <div>
+                              <p className="text-[10px] text-gray-400 font-bold">利益</p>
+                              <p className={`font-mono font-bold text-2xl ${targetProfitG >= 0 ? 'text-blue-700' : 'text-red-600'}`}>{targetProfitG}</p>
+                            </div>
+                          </div>
+                          <div className="text-right text-[10px]">
+                            <p className="font-bold text-gray-600">g/m比率</p>
+                            <p className="text-gray-400">経営安全率</p>
+                            <p className="font-bold text-lg text-blue-600">{gmRate}%</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
                 {/* 固定費内訳 */}
                 <div className="mt-3 bg-gray-50 rounded p-2 border border-gray-200">
-                  <div className="text-xs font-bold text-gray-600 mb-1">固定費内訳</div>
+                  <div className="text-xs font-bold text-gray-600 mb-1">固定費内訳 (F = {results.costs.total})</div>
                   <div className="grid grid-cols-4 gap-1 text-xs text-gray-500">
                     <span>設備費: <b className="text-gray-700">{results.costs.machines}</b></span>
                     <span>人件費: <b className="text-gray-700">{results.costs.labor}</b></span>
@@ -866,92 +841,154 @@ export default function App() {
                     <span>固定他: <b className="text-gray-700">{results.costs.fixed}</b></span>
                   </div>
                 </div>
+
+                {/* 損益分岐点 */}
+                <div className="mt-2 bg-orange-50 rounded p-2 border border-orange-200 text-xs flex gap-4">
+                  <span>損益分岐点数量 <b className="text-orange-700">[Q0] = {Math.ceil(breakQ0)}</b></span>
+                  <span>目標販売数 <b className="text-blue-700">[Q] = {Math.ceil(targetQ)}</b></span>
+                </div>
               </div>
             )}
 
-            {/* B/S */}
+            {/* ========== B/S (バランスシート) ========== */}
             {bsplTab === 'bs' && (
               <div>
-                <h2 className="text-base font-bold text-center text-indigo-800 mb-4 border-b-2 border-indigo-200 pb-2">
-                  貸借対照表（B/S） — {period}期
+                <h2 className="text-sm font-bold text-center text-indigo-800 mb-3 border-b-2 border-indigo-200 pb-2">
+                  バランスシート（B/S） — {period}期
                 </h2>
-                <div className="grid grid-cols-2 gap-4">
-                  {/* 借方（資産） */}
-                  <div className="border-2 border-indigo-200 rounded-lg overflow-hidden">
-                    <div className="bg-indigo-600 text-white text-center py-1.5 text-sm font-bold">
-                      借方（資産）
+
+                <div className="grid grid-cols-2 gap-0 border-2 border-gray-700 rounded-lg overflow-hidden text-sm">
+
+                  {/* === 左: 資産側 === */}
+                  <div className="border-r-2 border-gray-700">
+                    {/* 流動資産 */}
+                    <div className="bg-blue-50 border-b border-gray-300 px-2 py-1">
+                      <span className="text-[10px] font-bold text-blue-700 bg-blue-100 px-1 rounded">流動資産</span>
                     </div>
-                    <table className="w-full text-sm">
-                      <tbody>
-                        <tr className="border-b border-gray-100">
-                          <td className="py-1.5 px-3 text-gray-600 text-xs">現金・預金</td>
-                          <td className="py-1.5 px-3 font-mono font-bold text-right">{cash}</td>
-                        </tr>
-                        <tr className="border-b border-gray-100 bg-gray-50">
-                          <td className="py-1.5 px-3 text-gray-600 text-xs">材料在庫</td>
-                          <td className="py-1.5 px-3 font-mono font-bold text-right">{state.materials * results.invP.mat}</td>
-                        </tr>
-                        <tr className="border-b border-gray-100">
-                          <td className="py-1.5 px-3 text-gray-600 text-xs">仕掛品</td>
-                          <td className="py-1.5 px-3 font-mono font-bold text-right">{state.wip * results.invP.wip}</td>
-                        </tr>
-                        <tr className="border-b border-gray-100 bg-gray-50">
-                          <td className="py-1.5 px-3 text-gray-600 text-xs">製品在庫</td>
-                          <td className="py-1.5 px-3 font-mono font-bold text-right">{state.products * results.invP.prod}</td>
-                        </tr>
-                        <tr className="bg-indigo-50 border-t-2 border-indigo-200">
-                          <td className="py-2 px-3 font-bold text-indigo-800 text-xs">資産合計</td>
-                          <td className="py-2 px-3 font-mono font-bold text-right text-indigo-800 text-base">{totalAssets}</td>
-                        </tr>
-                      </tbody>
-                    </table>
+                    <div className="divide-y divide-gray-100">
+                      <div className="flex justify-between px-3 py-1">
+                        <span className="text-gray-600 text-xs">現金・預金</span>
+                        <span className="font-mono font-bold">{cash}</span>
+                      </div>
+                      <div className="flex justify-between px-3 py-1">
+                        <span className="text-gray-600 text-xs">貸付金</span>
+                        <span className="font-mono font-bold">0</span>
+                      </div>
+                      <div className="flex justify-between px-3 py-1">
+                        <span className="text-gray-600 text-xs">在庫（期末）</span>
+                        <span className="font-mono font-bold">{results.inventoryValue}</span>
+                      </div>
+                      <div className="flex justify-between px-3 py-1 bg-blue-50/60">
+                        <span className="text-xs font-bold text-blue-700">流動資産計</span>
+                        <span className="font-mono font-bold text-blue-700">{currentAssets}</span>
+                      </div>
+                    </div>
+
+                    {/* 固定資産 */}
+                    <div className="bg-purple-50 border-t-2 border-b border-gray-300 px-2 py-1 mt-1">
+                      <span className="text-[10px] font-bold text-purple-700 bg-purple-100 px-1 rounded">固定資産</span>
+                    </div>
+                    <div className="divide-y divide-gray-100">
+                      <div className="flex justify-between px-3 py-1">
+                        <span className="text-gray-600 text-xs">機械</span>
+                        <span className="font-mono font-bold">{results.machineValue}</span>
+                      </div>
+                    </div>
+
+                    {/* 繰延資産 */}
+                    <div className="bg-yellow-50 border-t-2 border-b border-gray-300 px-2 py-1 mt-1">
+                      <span className="text-[10px] font-bold text-yellow-700 bg-yellow-100 px-1 rounded">繰延資産</span>
+                    </div>
+                    <div className="divide-y divide-gray-100">
+                      <div className="flex justify-between px-3 py-1">
+                        <span className="text-gray-600 text-xs">広告（{state.ads}個）</span>
+                        <span className="font-mono font-bold">{results.adsValue}</span>
+                      </div>
+                      <div className="flex justify-between px-3 py-1">
+                        <span className="text-gray-600 text-xs">研究（{state.rd}個）</span>
+                        <span className="font-mono font-bold">{results.rdValue}</span>
+                      </div>
+                      <div className="flex justify-between px-3 py-1">
+                        <span className="text-gray-600 text-xs">教育（{state.education}個）</span>
+                        <span className="font-mono font-bold">{results.eduValue}</span>
+                      </div>
+                    </div>
                   </div>
 
-                  {/* 貸方（負債・資本） */}
-                  <div className="border-2 border-rose-200 rounded-lg overflow-hidden">
-                    <div className="bg-rose-600 text-white text-center py-1.5 text-sm font-bold">
-                      貸方（負債・資本）
+                  {/* === 右: 負債・資本側 === */}
+                  <div>
+                    {/* 他人資本 / 流動負債 */}
+                    <div className="bg-red-50 border-b border-gray-300 px-2 py-1">
+                      <span className="text-[10px] font-bold text-red-700 bg-red-100 px-1 rounded">他人資本</span>
+                      <span className="text-[9px] text-gray-400 ml-1">流動負債</span>
                     </div>
-                    <table className="w-full text-sm">
-                      <tbody>
-                        <tr className="border-b border-gray-100">
-                          <td className="py-1.5 px-3 text-gray-600 text-xs">短期借入金</td>
-                          <td className="py-1.5 px-3 font-mono font-bold text-right">{shortTermLoan}</td>
-                        </tr>
-                        <tr className="border-b border-gray-100 bg-gray-50">
-                          <td className="py-1.5 px-3 text-gray-600 text-xs">長期借入金</td>
-                          <td className="py-1.5 px-3 font-mono font-bold text-right">{longTermLoan}</td>
-                        </tr>
-                        <tr className="border-b-2 border-gray-300 bg-red-50">
-                          <td className="py-1.5 px-3 font-bold text-red-700 text-xs">負債合計</td>
-                          <td className="py-1.5 px-3 font-mono font-bold text-right text-red-700">{totalLiabilities}</td>
-                        </tr>
-                        <tr className="border-b border-gray-100 bg-green-50">
-                          <td className="py-1.5 px-3 font-bold text-green-700 text-xs">資本（純資産）</td>
-                          <td className={`py-1.5 px-3 font-mono font-bold text-right ${equity >= 0 ? 'text-green-700' : 'text-red-700'}`}>{equity}</td>
-                        </tr>
-                        <tr className="bg-rose-50 border-t-2 border-rose-200">
-                          <td className="py-2 px-3 font-bold text-rose-800 text-xs">負債・資本合計</td>
-                          <td className="py-2 px-3 font-mono font-bold text-right text-rose-800 text-base">{totalAssets}</td>
-                        </tr>
-                      </tbody>
-                    </table>
+                    <div className="divide-y divide-gray-100">
+                      <div className="flex justify-between px-3 py-1">
+                        <span className="text-gray-600 text-xs">納税充当金 E</span>
+                        <span className="font-mono font-bold">{taxProvision}</span>
+                      </div>
+                      <div className="flex justify-between px-3 py-1">
+                        <span className="text-gray-600 text-xs">短期借入金 A</span>
+                        <span className="font-mono font-bold">{shortTermLoan}</span>
+                      </div>
+                    </div>
+
+                    {/* 固定負債 */}
+                    <div className="bg-red-50/60 border-t border-b border-gray-300 px-2 py-1">
+                      <span className="text-[9px] text-gray-500 ml-1">固定負債</span>
+                    </div>
+                    <div className="divide-y divide-gray-100">
+                      <div className="flex justify-between px-3 py-1">
+                        <span className="text-gray-600 text-xs">長期借入金 B</span>
+                        <span className="font-mono font-bold">{longTermLoan}</span>
+                      </div>
+                    </div>
+
+                    {/* 自己資本 */}
+                    <div className="bg-green-50 border-t-2 border-b border-gray-300 px-2 py-1 mt-1">
+                      <span className="text-[10px] font-bold text-green-700 bg-green-100 px-1 rounded">自己資本</span>
+                    </div>
+                    <div className="px-3 py-2 flex flex-col items-center gap-2">
+                      {/* 自己資本 oval */}
+                      <div className="strac-oval w-20 h-20 border-green-600">
+                        <span className="text-[10px] text-gray-500">自己資本</span>
+                        <span className={`font-bold text-lg ${selfCapital >= 0 ? 'text-green-700' : 'text-red-600'}`}>{selfCapital}</span>
+                      </div>
+                      <div className="w-full divide-y divide-gray-100">
+                        <div className="flex justify-between py-1">
+                          <span className="text-gray-600 text-xs">資本金 C</span>
+                          <span className={`font-mono font-bold text-xs ${capitalC >= 0 ? '' : 'text-red-600'}`}>{capitalC}</span>
+                        </div>
+                        <div className="flex justify-between py-1">
+                          <span className="text-gray-600 text-xs">次期繰越利益 D</span>
+                          <span className={`font-mono font-bold text-xs ${nextPeriodRetained >= 0 ? 'text-green-700' : 'text-red-600'}`}>{nextPeriodRetained}</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                {/* 財務指標 */}
-                <div className="mt-4 grid grid-cols-3 gap-2 text-xs">
-                  <div className={`rounded p-2 text-center border ${equity >= 0 ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
-                    <div className={equity >= 0 ? 'text-green-600' : 'text-red-600'}>純資産（資本）</div>
-                    <div className={`font-bold text-base ${equity >= 0 ? 'text-green-700' : 'text-red-700'}`}>{equity}</div>
+                {/* 合計行 */}
+                <div className="grid grid-cols-2 gap-0 border-2 border-t-0 border-gray-700 rounded-b-lg overflow-hidden">
+                  <div className="flex justify-between px-3 py-2 bg-indigo-50 border-r-2 border-gray-700">
+                    <span className="text-xs font-bold text-indigo-700">資産合計</span>
+                    <span className="font-mono font-bold text-base text-indigo-800">{totalAssets}</span>
                   </div>
-                  <div className="bg-gray-50 rounded p-2 text-center border border-gray-200">
-                    <div className="text-gray-500">在庫評価額</div>
-                    <div className="font-bold text-base">{results.inventoryValue}</div>
+                  <div className="flex justify-between px-3 py-2 bg-indigo-50">
+                    <span className="text-xs font-bold text-indigo-700">負債・資本合計</span>
+                    <span className="font-mono font-bold text-base text-indigo-800">{totalAssets}</span>
                   </div>
-                  <div className="bg-gray-50 rounded p-2 text-center border border-gray-200">
-                    <div className="text-gray-500">借入合計</div>
-                    <div className="font-bold text-base text-red-600">{totalLiabilities}</div>
+                </div>
+
+                {/* 内訳メモ */}
+                <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-gray-500">
+                  <div className="bg-gray-50 rounded p-2 border">
+                    <b className="text-gray-700">負債合計:</b> {totalLiabilities}
+                    <span className="ml-2 text-gray-400">(納税{taxProvision} + 短借{shortTermLoan} + 長借{longTermLoan})</span>
+                  </div>
+                  <div className="bg-gray-50 rounded p-2 border">
+                    <b className="text-gray-700">繰延資産計:</b> {deferredAssets}
+                    <span className="ml-2 text-gray-400">(広告{results.adsValue} + 研究{results.rdValue} + 教育{results.eduValue})</span>
                   </div>
                 </div>
               </div>
