@@ -244,7 +244,7 @@ const SliderRow = ({
       onChange={e => onChange(parseInt(e.target.value))}
       className="flex-1 h-2 cursor-pointer"
     />
-    <span className="font-mono font-bold text-sm w-12 text-right shrink-0">{value}</span>
+    <span className="font-mono font-bold text-sm w-12 text-right shrink-0">{value < 0 ? `▲${Math.abs(value)}` : value}</span>
     {note && <span className="text-xs text-orange-600 font-bold w-20 shrink-0">{note}</span>}
   </div>
 );
@@ -263,7 +263,7 @@ const DecimalSliderRow = ({
       onChange={e => onChange(parseFloat(e.target.value))}
       className="flex-1 h-2 cursor-pointer"
     />
-    <span className="font-mono font-bold text-sm w-12 text-right shrink-0">{value.toFixed(1)}</span>
+    <span className="font-mono font-bold text-sm w-12 text-right shrink-0">{value < 0 ? `▲${Math.abs(value).toFixed(1)}` : value.toFixed(1)}</span>
   </div>
 );
 
@@ -273,7 +273,7 @@ const CalcRow = ({
 }: {
   label: string; formula: string; value: number; highlight?: boolean; ceil?: boolean;
 }) => {
-  const disp = ceil ? Math.ceil(value) : value % 1 === 0 ? value : value.toFixed(1);
+  const disp = fmtNum(value, ceil);
   return (
     <div className={`flex items-center gap-2 py-0.5 ${highlight ? 'bg-blue-50 rounded px-1' : ''}`}>
       <span className="text-xs font-bold text-gray-700 w-24 shrink-0">{label}</span>
@@ -283,6 +283,14 @@ const CalcRow = ({
       </span>
     </div>
   );
+};
+
+// 数値フォーマット（負数は▲表示）
+const fmtNum = (n: number, doCeil = false): string => {
+  const v = doCeil ? Math.ceil(n) : n;
+  const abs = Math.abs(v);
+  const s = abs % 1 === 0 ? String(abs) : abs.toFixed(1);
+  return v < 0 ? `▲${s}` : s;
 };
 
 // --- 4. メインアプリ ---
@@ -511,7 +519,7 @@ export default function App() {
                 <span className="text-sm font-bold text-orange-700 ml-1">{results.purchaseCap}個</span>
               </div>
             )}
-            <div className="flex-1 flex items-center justify-center p-4">
+            <div className="flex-1 flex items-center justify-center p-4 pb-16">
               {state.safetyWarehouse ? (
                 <SafetyTray count={state.materials} typeClass="token-mat" />
               ) : (
@@ -521,11 +529,13 @@ export default function App() {
                 </div>
               )}
             </div>
-            <div className="mt-auto flex flex-col items-center gap-1 pb-2">
-              <MiniControl label={`材料(max${CAPACITY.materials})`} count={state.materials} onInc={() => update('materials', 1)} onDec={() => update('materials', -1)} />
-              <div className="text-[10px] text-gray-500">
-                @{results.invP.mat} = <span className="font-bold text-gray-700">{state.materials * results.invP.mat}</span>
+            <div className="absolute bottom-0 left-0 right-0 flex flex-col items-center py-2 gap-0.5 bg-white/65 backdrop-blur-sm border-t border-gray-300/60 rounded-b-lg">
+              <div className="flex items-center gap-3">
+                <button onClick={() => update('materials', -1)} className="w-9 h-9 rounded-full bg-red-500/70 hover:bg-red-600/80 text-white font-bold text-xl flex items-center justify-center shadow-sm transition-colors select-none">−</button>
+                <span className="font-mono font-bold text-sm w-8 text-center">{state.materials}</span>
+                <button onClick={() => update('materials', 1)} className="w-9 h-9 rounded-full bg-green-500/70 hover:bg-green-600/80 text-white font-bold text-xl flex items-center justify-center shadow-sm transition-colors select-none">+</button>
               </div>
+              <span className="text-[10px] text-gray-600">@{results.invP.mat} = <b className="text-gray-800">{state.materials * results.invP.mat}</b></span>
             </div>
           </div>
 
@@ -556,13 +566,17 @@ export default function App() {
                 <MiniControl label="大型" count={state.largeMachine}  onInc={() => update('largeMachine',  1)} onDec={() => update('largeMachine',  -1)} />
               </div>
             </div>
-            <div className="flex-1 flex flex-col items-center justify-center py-4">
-              <div className="flex flex-wrap gap-1 justify-center max-w-[100px] mb-1">
+            <div className="flex-1 flex flex-col items-center justify-center py-4 relative pb-16">
+              <div className="flex flex-wrap gap-1 justify-center max-w-[100px] mb-2">
                 {[...Array(state.wip)].map((_, i) => <div key={i} className="token-cube token-wip" />)}
               </div>
-              <MiniControl label={`仕掛品(max${CAPACITY.wip})`} count={state.wip} onInc={() => update('wip', 1)} onDec={() => update('wip', -1)} />
-              <div className="text-[10px] text-gray-500 mt-1">
-                @{results.invP.wip} = <span className="font-bold text-gray-700">{state.wip * results.invP.wip}</span>
+              <div className="absolute bottom-0 left-0 right-0 flex flex-col items-center py-2 gap-0.5 bg-white/65 backdrop-blur-sm border-t border-gray-300/60 rounded-b">
+                <div className="flex items-center gap-3">
+                  <button onClick={() => update('wip', -1)} className="w-9 h-9 rounded-full bg-red-500/70 hover:bg-red-600/80 text-white font-bold text-xl flex items-center justify-center shadow-sm transition-colors select-none">−</button>
+                  <span className="font-mono font-bold text-sm w-8 text-center">{state.wip}</span>
+                  <button onClick={() => update('wip', 1)} className="w-9 h-9 rounded-full bg-green-500/70 hover:bg-green-600/80 text-white font-bold text-xl flex items-center justify-center shadow-sm transition-colors select-none">+</button>
+                </div>
+                <span className="text-[10px] text-gray-600">@{results.invP.wip} = <b className="text-gray-800">{state.wip * results.invP.wip}</b></span>
               </div>
             </div>
             <div className="mt-auto bg-gray-200/50 rounded p-2 flex flex-col gap-2">
@@ -600,7 +614,7 @@ export default function App() {
               <span className="text-[10px] text-green-600 font-bold">販売個数</span>
               <span className="text-sm font-bold text-green-700 ml-1">{results.salesCap}個</span>
             </div>
-            <div className="flex-1 flex flex-col items-center justify-center py-4">
+            <div className="flex-1 flex flex-col items-center justify-center py-4 relative pb-16">
               {state.safetySales ? (
                 <SafetyTray count={state.products} typeClass="token-prod" />
               ) : (
@@ -608,9 +622,13 @@ export default function App() {
                   {[...Array(state.products)].map((_, i) => <div key={i} className="token-cube token-prod" />)}
                 </div>
               )}
-              <MiniControl label={`商品(max${CAPACITY.products})`} count={state.products} onInc={() => update('products', 1)} onDec={() => update('products', -1)} />
-              <div className="text-[10px] text-gray-500 mt-1">
-                @{results.invP.prod} = <span className="font-bold text-gray-700">{state.products * results.invP.prod}</span>
+              <div className="absolute bottom-0 left-0 right-0 flex flex-col items-center py-2 gap-0.5 bg-white/65 backdrop-blur-sm border-t border-gray-300/60 rounded-b-lg">
+                <div className="flex items-center gap-3">
+                  <button onClick={() => update('products', -1)} className="w-9 h-9 rounded-full bg-red-500/70 hover:bg-red-600/80 text-white font-bold text-xl flex items-center justify-center shadow-sm transition-colors select-none">−</button>
+                  <span className="font-mono font-bold text-sm w-8 text-center">{state.products}</span>
+                  <button onClick={() => update('products', 1)} className="w-9 h-9 rounded-full bg-green-500/70 hover:bg-green-600/80 text-white font-bold text-xl flex items-center justify-center shadow-sm transition-colors select-none">+</button>
+                </div>
+                <span className="text-[10px] text-gray-600">@{results.invP.prod} = <b className="text-gray-800">{state.products * results.invP.prod}</b></span>
               </div>
             </div>
             <div className="mt-auto h-[120px] bg-gray-200/50 rounded p-2 grid grid-cols-2 gap-2 border-t border-gray-300">
@@ -678,7 +696,7 @@ export default function App() {
           <SliderRow label="機械（簿価）" value={machineBookValue} onChange={setMachineBookValue} min={0} max={320} />
           <div className="flex items-center gap-2 pt-1 border-t border-gray-100">
             <span className="text-xs font-bold text-gray-500 w-24 shrink-0">現金（自動）</span>
-            <span className={`font-mono font-bold text-sm ml-auto ${cash >= 0 ? 'text-gray-800' : 'text-red-600'}`}>{cash}</span>
+            <span className={`font-mono font-bold text-sm ml-auto ${cash >= 0 ? 'text-gray-800' : 'text-red-600'}`}>{fmtNum(cash)}</span>
           </div>
         </div>
       </div>
@@ -867,7 +885,7 @@ export default function App() {
                               </div>
                               <div>
                                 <p className="text-[9px] text-gray-400 font-bold">利益</p>
-                                <p className={`font-mono font-bold text-xl ${targetProfitG >= 0 ? 'text-blue-700' : 'text-red-600'}`}>{targetProfitG}</p>
+                                <p className={`font-mono font-bold text-xl ${targetProfitG >= 0 ? 'text-blue-700' : 'text-red-600'}`}>{fmtNum(targetProfitG)}</p>
                               </div>
                             </div>
                             <div className="text-right text-[9px]">
@@ -918,7 +936,7 @@ export default function App() {
                     <div className="divide-y divide-gray-100">
                       <div className="flex justify-between px-3 py-1">
                         <span className="text-gray-600 text-xs">現金・預金</span>
-                        <span className={`font-mono font-bold text-xs ${cash < 0 ? 'text-red-600' : ''}`}>{cash}</span>
+                        <span className={`font-mono font-bold text-xs ${cash < 0 ? 'text-red-600' : ''}`}>{fmtNum(cash)}</span>
                       </div>
                       <div className="flex justify-between px-3 py-1">
                         <span className="text-gray-600 text-xs">貸付金</span>
@@ -930,7 +948,7 @@ export default function App() {
                       </div>
                       <div className="flex justify-between px-3 py-1 bg-blue-50/60">
                         <span className="text-xs font-bold text-blue-700">流動資産計</span>
-                        <span className="font-mono font-bold text-blue-700 text-xs">{cash + loanGiven + results.inventoryValue}</span>
+                        <span className="font-mono font-bold text-blue-700 text-xs">{fmtNum(cash + loanGiven + results.inventoryValue)}</span>
                       </div>
                     </div>
 
@@ -1005,7 +1023,7 @@ export default function App() {
                       {/* 自己資本 oval */}
                       <div className="strac-oval w-20 h-20 border-green-600">
                         <span className="text-[10px] text-gray-500">自己資本</span>
-                        <span className={`font-bold text-lg ${selfCapital >= 0 ? 'text-green-700' : 'text-red-600'}`}>{selfCapital}</span>
+                        <span className={`font-bold text-lg ${selfCapital >= 0 ? 'text-green-700' : 'text-red-600'}`}>{fmtNum(selfCapital)}</span>
                       </div>
                       <div className="w-full divide-y divide-gray-100">
                         <div className="flex justify-between py-1">
@@ -1014,7 +1032,7 @@ export default function App() {
                         </div>
                         <div className="flex justify-between py-1">
                           <span className="text-gray-600 text-xs">次期繰越利益 D</span>
-                          <span className={`font-mono font-bold text-xs ${nextPeriodRetained >= 0 ? 'text-green-700' : 'text-red-600'}`}>{nextPeriodRetained}</span>
+                          <span className={`font-mono font-bold text-xs ${nextPeriodRetained >= 0 ? 'text-green-700' : 'text-red-600'}`}>{fmtNum(nextPeriodRetained)}</span>
                         </div>
                       </div>
                     </div>
