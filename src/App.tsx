@@ -135,10 +135,6 @@ const PRICES = {
   5: { comp: 20, insurance: 5, edu: 20, rd: 20, ads: 20, worker: 42, sales: 42, warehouse: 20 },
 };
 
-const INVENTORY_PRICES: Record<string, { mat: number; wip: number; prod: number }> = {
-  2:     { mat: 12, wip: 13, prod: 14 },
-  other: { mat: 13, wip: 14, prod: 15 },
-};
 
 const INITIAL_STATE = {
   materials: 0, wip: 0, products: 0,
@@ -314,7 +310,8 @@ export default function App() {
   // 損益分析スライダー
   const [targetProfitG, setTargetProfitG] = useState(0);
   const [priceP, setPriceP] = useState(30.0);
-  const [varCostV, setVarCostV] = useState(13.0);
+  const [avgMatPrice, setAvgMatPrice] = useState(12.0); // 平均材料単価（Vは自動: +2）
+  const varCostV = avgMatPrice + 2;
 
   // B/S・P/L モーダル
   const [showBSPL, setShowBSPL] = useState(false);
@@ -397,14 +394,15 @@ export default function App() {
     // シニアの仕入可能個数 = 製造能力と同じ
     const purchaseCap = prodCap;
 
-    const invP = period === 2 ? INVENTORY_PRICES[2] : INVENTORY_PRICES.other;
+    const matUnitP = Math.round(avgMatPrice);
+    const invP = { mat: matUnitP, wip: matUnitP + 1, prod: matUnitP + 2 };
     const inventoryValue = (state.materials * invP.mat) + (state.wip * invP.wip) + (state.products * invP.prod);
 
     return {
       costs, prodCap, salesCap, priceComp, purchaseCap,
       inventoryValue, invP, ltlInterest, stlInterest,
     };
-  }, [state, period, dice, ruleMode, longTermLoan, shortTermLoan, specialLoss]);
+  }, [state, period, dice, ruleMode, longTermLoan, shortTermLoan, specialLoss, avgMatPrice]);
 
   // 繰延資産計算（モードによって異なる）
   // シニア: 次繰盤「研究開発完成」の赤(広告)・青(研究)・黄(教育) × 20
@@ -429,10 +427,11 @@ export default function App() {
 
   // 損益分析（自動計算）
   const marginM    = priceP - varCostV;
-  const totalMQ    = targetProfitG + results.costs.total;            // MQ = G + F
-  const targetQ    = marginM > 0 ? totalMQ / marginM : 0;           // Q  = MQ / M
-  const revenueQ   = priceP * targetQ;                               // PQ = P × Q
-  const varTotalQ  = varCostV * targetQ;                             // VQ = V × Q
+  const totalMQ    = targetProfitG + results.costs.total;              // MQ = G + F
+  const targetQ    = marginM > 0 ? totalMQ / marginM : 0;             // Q  = MQ / M
+  const ceilQ      = Math.ceil(targetQ);                               // 繰り上げQ
+  const revenueQ   = priceP * ceilQ;                                   // PQ = P × ceil(Q)
+  const varTotalQ  = varCostV * ceilQ;                                 // VQ = V × ceil(Q)
   const breakQ0    = marginM > 0 ? results.costs.total / marginM : 0; // Q0 = F / M
 
   // STRAC 比率
@@ -690,14 +689,15 @@ export default function App() {
         <div className="flex flex-col gap-2">
           <SliderRow label="[G] 利益目標" value={targetProfitG} onChange={setTargetProfitG} min={-300} max={500} />
           <DecimalSliderRow label="[P] 販売価格" value={priceP} onChange={setPriceP} min={20} max={40} step={0.5} />
-          <DecimalSliderRow label="[V] 変動費単価" value={varCostV} onChange={setVarCostV} min={10} max={16} step={0.5} />
+          <DecimalSliderRow label="平均材料単価" value={avgMatPrice} onChange={setAvgMatPrice} min={8} max={20} step={0.1} />
+          <CalcRow label="[V] 変動費単価" formula="平均材料単価+2" value={varCostV} />
           <hr className="border-blue-100 my-1" />
           <CalcRow label="[M] 限界利益率" formula="P − V"      value={marginM}   highlight />
           <CalcRow label="[MQ] 限界利益計" formula="G + 固定費" value={totalMQ}   highlight />
           <CalcRow label="[Q] 目標販売数"  formula="MQ ÷ M"    value={targetQ}   ceil />
           <CalcRow label="[Q0] 損益分岐点" formula="固定費 ÷ M" value={breakQ0}   ceil />
-          <CalcRow label="[PQ] 売上高"     formula="P × Q"     value={revenueQ} />
-          <CalcRow label="[VQ] 変動費計"   formula="V × Q"     value={varTotalQ} />
+          <CalcRow label="[PQ] 売上高"     formula="P × Q↑"    value={revenueQ} />
+          <CalcRow label="[VQ] 変動費計"   formula="V × Q↑"    value={varTotalQ} />
         </div>
       </div>
 
@@ -754,98 +754,115 @@ export default function App() {
                   MQ会計表（STRAC） — {period}期
                 </h2>
 
-                <div className="flex gap-3 items-stretch">
+                {/* 上段: PVMボックス + Qボックス */}
+                <div className="flex gap-3 mb-3">
 
-                  {/* 左: 単位値パネル */}
-                  <div className="flex flex-col justify-between border border-gray-300 rounded-lg p-3 bg-gray-50 w-28 shrink-0 text-center">
-                    <div className="space-y-2 border-b border-gray-300 pb-3">
+                  {/* PVMボックス */}
+                  <div className="border-2 border-blue-400 rounded-lg bg-blue-50 shrink-0 overflow-hidden">
+                    <div className="bg-blue-500 text-white text-center text-[10px] font-bold py-1 tracking-wider">単位値（1個あたり）</div>
+                    <div className="p-3 space-y-2 text-center">
                       <div>
-                        <p className="text-[10px] text-gray-400">①P</p>
-                        <p className="font-mono font-bold text-lg text-blue-700">{priceP.toFixed(1)}</p>
+                        <p className="text-[10px] text-gray-500">①P 販売価格</p>
+                        <p className="font-mono font-bold text-2xl text-blue-700">{priceP.toFixed(1)}</p>
                       </div>
                       <div>
-                        <p className="text-[10px] text-gray-400">②V</p>
-                        <p className="font-mono font-bold text-lg text-red-600">{varCostV.toFixed(1)}</p>
+                        <p className="text-[10px] text-gray-500">②V 変動費単価</p>
+                        <p className="font-mono font-bold text-2xl text-red-600">{varCostV.toFixed(1)}</p>
                       </div>
-                      <div>
-                        <p className="text-[10px] text-gray-400">③M</p>
-                        <p className="font-mono font-bold text-lg text-green-700">{marginM.toFixed(1)}</p>
+                      <div className="border-t border-blue-200 pt-2">
+                        <p className="text-[10px] text-gray-500">③M 限界利益</p>
+                        <p className="font-mono font-bold text-2xl text-green-700">{marginM.toFixed(1)}</p>
                       </div>
-                    </div>
-                    <div className="py-3 border-b border-gray-300">
-                      <p className="text-[10px] text-gray-400">⑤PQ</p>
-                      <p className="font-mono font-bold text-xl">{Math.ceil(revenueQ)}</p>
-                    </div>
-                    <div className="pt-3">
-                      <p className="text-[10px] text-gray-400">④Q</p>
-                      <p className="font-mono font-bold text-xl">{Math.ceil(targetQ)}</p>
                     </div>
                   </div>
 
-                  {/* MQ会計表 本体 */}
-                  <div className="flex-1 border-2 border-gray-700 rounded-lg overflow-hidden">
-                    <div className="bg-gray-700 text-white text-center text-xs font-bold py-1 tracking-widest">MQ会計表</div>
-
-                    {/* 上段: 変動費エリア (VQ) */}
-                    <div className="flex items-center gap-3 border-b-2 border-gray-700 p-3 bg-red-50/40" style={{minHeight: '100px'}}>
-                      <div className="strac-oval w-16 h-16 shrink-0">
-                        <span className="text-[10px] text-gray-500">V率</span>
-                        <span className="font-bold text-base text-red-600">{vRate}%</span>
+                  {/* Qボックス */}
+                  <div className="border-2 border-green-500 rounded-lg bg-green-50 shrink-0 overflow-hidden">
+                    <div className="bg-green-600 text-white text-center text-[10px] font-bold py-1 tracking-wider">販売数量</div>
+                    <div className="p-3 space-y-3 text-center">
+                      <div>
+                        <p className="text-[10px] text-gray-500">④Q 目標販売数</p>
+                        <p className="font-mono font-bold text-3xl text-green-800">{ceilQ}</p>
                       </div>
-                      <div className="flex-1 text-right">
-                        <p className="text-[10px] text-gray-400 font-bold">⑥VQ（変動費）</p>
-                        <p className="font-mono font-bold text-3xl text-red-700">{Math.ceil(varTotalQ)}</p>
+                      <div className="border-t border-green-200 pt-2">
+                        <p className="text-[10px] text-gray-500">Q0 損益分岐点</p>
+                        <p className="font-mono font-bold text-xl text-orange-600">{Math.ceil(breakQ0)}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* MQ会計表 本体（PQ含む） */}
+                <div className="border-2 border-gray-700 rounded-lg overflow-hidden">
+
+                  {/* ヘッダー: MQ会計表タイトル + PQ */}
+                  <div className="bg-gray-700 text-white flex justify-between items-center px-3 py-1.5">
+                    <span className="text-xs font-bold tracking-widest">MQ会計表</span>
+                    <div className="text-right">
+                      <span className="text-[10px] text-gray-300">⑤PQ（売上高）</span>
+                      <span className="font-mono font-bold text-xl text-yellow-300 ml-2">{Math.ceil(revenueQ)}</span>
+                    </div>
+                  </div>
+
+                  {/* 上段: 変動費エリア (VQ) */}
+                  <div className="flex items-center gap-3 border-b-2 border-gray-700 p-3 bg-red-50/40" style={{minHeight: '90px'}}>
+                    <div className="strac-oval w-16 h-16 shrink-0">
+                      <span className="text-[10px] text-gray-500">V率</span>
+                      <span className="font-bold text-base text-red-600">{vRate}%</span>
+                    </div>
+                    <div className="flex-1 text-right">
+                      <p className="text-[10px] text-gray-400 font-bold">⑥VQ（変動費）</p>
+                      <p className="font-mono font-bold text-3xl text-red-700">{Math.ceil(varTotalQ)}</p>
+                    </div>
+                  </div>
+
+                  {/* 下段: 限界利益エリア (MQ) */}
+                  <div className="flex" style={{minHeight: '150px'}}>
+
+                    {/* 左半: m率 + MQ */}
+                    <div className="border-r-2 border-gray-700 p-3 flex flex-col items-center justify-between bg-green-50/40" style={{width: '42%'}}>
+                      <div className="text-center">
+                        <p className="text-[10px] text-gray-400 font-bold">⑦MQ（限界利益）</p>
+                        <p className="font-mono font-bold text-2xl text-green-700">{Math.ceil(totalMQ)}</p>
+                      </div>
+                      <div className="strac-oval w-16 h-16">
+                        <span className="text-[10px] text-gray-500">m率</span>
+                        <span className="font-bold text-base text-green-700">{mRate}%</span>
                       </div>
                     </div>
 
-                    {/* 下段: 限界利益エリア (MQ) */}
-                    <div className="flex" style={{minHeight: '160px'}}>
+                    {/* 右半: F + G 縦分割 */}
+                    <div className="flex-1 flex flex-col">
 
-                      {/* 左半: m率 + MQ */}
-                      <div className="border-r-2 border-gray-700 p-3 flex flex-col items-center justify-between bg-green-50/40" style={{width: '42%'}}>
-                        <div className="text-center">
-                          <p className="text-[10px] text-gray-400 font-bold">⑦MQ（限界利益）</p>
-                          <p className="font-mono font-bold text-2xl text-green-700">{Math.ceil(totalMQ)}</p>
+                      {/* ⑧F 固定費 */}
+                      <div className="flex-1 border-b-2 border-gray-700 p-2 flex items-center justify-between bg-orange-50/40">
+                        <div>
+                          <p className="text-[10px] text-gray-400 font-bold">⑧F（固定費）</p>
+                          <p className="font-mono font-bold text-2xl text-orange-700">{results.costs.total}</p>
                         </div>
-                        <div className="strac-oval w-16 h-16">
-                          <span className="text-[10px] text-gray-500">m率</span>
-                          <span className="font-bold text-base text-green-700">{mRate}%</span>
+                        <div className="text-right text-[10px]">
+                          <p className="font-bold text-gray-600">f/m比率</p>
+                          <p className="text-gray-400">損益分岐点比率</p>
+                          <p className="font-bold text-lg text-orange-600">{fmRate}%</p>
                         </div>
                       </div>
 
-                      {/* 右半: F + G 縦分割 */}
-                      <div className="flex-1 flex flex-col">
-
-                        {/* ⑧F 固定費 */}
-                        <div className="flex-1 border-b-2 border-gray-700 p-2 flex items-center justify-between bg-orange-50/40">
-                          <div>
-                            <p className="text-[10px] text-gray-400 font-bold">⑧F（固定費）</p>
-                            <p className="font-mono font-bold text-2xl text-orange-700">{results.costs.total}</p>
+                      {/* ⑨G 利益 */}
+                      <div className="flex-1 p-2 flex items-center justify-between bg-blue-50/40">
+                        <div className="flex items-center gap-2">
+                          <div className="strac-oval w-14 h-14 shrink-0">
+                            <span className="text-[9px] text-gray-400">⑨G</span>
+                            <span className="font-bold text-sm text-blue-700">{gmRate}%</span>
                           </div>
-                          <div className="text-right text-[10px]">
-                            <p className="font-bold text-gray-600">f/m比率</p>
-                            <p className="text-gray-400">損益分岐点比率</p>
-                            <p className="font-bold text-lg text-orange-600">{fmRate}%</p>
+                          <div>
+                            <p className="text-[10px] text-gray-400 font-bold">利益</p>
+                            <p className={`font-mono font-bold text-2xl ${targetProfitG >= 0 ? 'text-blue-700' : 'text-red-600'}`}>{targetProfitG}</p>
                           </div>
                         </div>
-
-                        {/* ⑨G 利益 */}
-                        <div className="flex-1 p-2 flex items-center justify-between bg-blue-50/40">
-                          <div className="flex items-center gap-2">
-                            <div className="strac-oval w-14 h-14 shrink-0">
-                              <span className="text-[9px] text-gray-400">⑨G</span>
-                              <span className="font-bold text-sm text-blue-700">{gmRate}%</span>
-                            </div>
-                            <div>
-                              <p className="text-[10px] text-gray-400 font-bold">利益</p>
-                              <p className={`font-mono font-bold text-2xl ${targetProfitG >= 0 ? 'text-blue-700' : 'text-red-600'}`}>{targetProfitG}</p>
-                            </div>
-                          </div>
-                          <div className="text-right text-[10px]">
-                            <p className="font-bold text-gray-600">g/m比率</p>
-                            <p className="text-gray-400">経営安全率</p>
-                            <p className="font-bold text-lg text-blue-600">{gmRate}%</p>
-                          </div>
+                        <div className="text-right text-[10px]">
+                          <p className="font-bold text-gray-600">g/m比率</p>
+                          <p className="text-gray-400">経営安全率</p>
+                          <p className="font-bold text-lg text-blue-600">{gmRate}%</p>
                         </div>
                       </div>
                     </div>
