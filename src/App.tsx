@@ -676,7 +676,7 @@ export default function App() {
           <SliderRow label="次期繰越利益" value={nextPeriodRetained} onChange={setNextPeriodRetained} min={-300} max={400} />
           <SliderRow label="納税充当金" value={taxProvision} onChange={setTaxProvision} min={0} max={200} />
           <SliderRow label="貸付金" value={loanGiven} onChange={setLoanGiven} min={0} max={500} />
-          <SliderRow label="機械（簿価）" value={machineBookValue} onChange={setMachineBookValue} min={0} max={1000} />
+          <SliderRow label="機械（簿価）" value={machineBookValue} onChange={setMachineBookValue} min={0} max={320} />
           <div className="flex items-center gap-2 pt-1 border-t border-gray-100">
             <span className="text-xs font-bold text-gray-500 w-24 shrink-0">現金（自動）</span>
             <span className={`font-mono font-bold text-sm ml-auto ${cash >= 0 ? 'text-gray-800' : 'text-red-600'}`}>{cash}</span>
