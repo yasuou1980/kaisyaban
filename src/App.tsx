@@ -303,12 +303,13 @@ export default function App() {
   });
 
   // 財務入力
-  const [cash, setCash] = useState(0);
   const [longTermLoan, setLongTermLoan] = useState(0);
   const [shortTermLoan, setShortTermLoan] = useState(0);
   const [specialLoss, setSpecialLoss] = useState(0);
   const [nextPeriodRetained, setNextPeriodRetained] = useState(0); // 次期繰越利益
   const [taxProvision, setTaxProvision] = useState(0);             // 納税充当金
+  const [loanGiven, setLoanGiven] = useState(0);                   // 貸付金
+  const [machineBookValue, setMachineBookValue] = useState(0);     // 機械（簿価）
 
   // 損益分析スライダー
   const [targetProfitG, setTargetProfitG] = useState(0);
@@ -399,18 +400,32 @@ export default function App() {
     const invP = period === 2 ? INVENTORY_PRICES[2] : INVENTORY_PRICES.other;
     const inventoryValue = (state.materials * invP.mat) + (state.wip * invP.wip) + (state.products * invP.prod);
 
-    // B/S用資産価値
-    const machineValue  = totalMachineCount * machineUnitRate;
-    const adsValue      = calcSpecial(state.ads,       p.ads);
-    const rdValue       = calcSpecial(state.rd,        p.rd);
-    const eduValue      = calcSpecial(state.education, p.edu);
-
     return {
       costs, prodCap, salesCap, priceComp, purchaseCap,
       inventoryValue, invP, ltlInterest, stlInterest,
-      machineValue, adsValue, rdValue, eduValue,
     };
   }, [state, period, dice, ruleMode, longTermLoan, shortTermLoan, specialLoss]);
+
+  // 繰延資産計算（モードによって異なる）
+  // シニア: 次繰盤「研究開発完成」の赤(広告)・青(研究)・黄(教育) × 20
+  // ジュニア: 会社盤チップ数 - 1 × 20（最小0）
+  const deferred = useMemo(() => {
+    if (ruleMode === 'senior') {
+      const ac = nextKuriChips.rdComplete.red;
+      const rc = nextKuriChips.rdComplete.blue;
+      const ec = nextKuriChips.rdComplete.yellow;
+      return { adsCount: ac, rdCount: rc, eduCount: ec,
+               ads: ac * 20, rd: rc * 20, edu: ec * 20,
+               total: (ac + rc + ec) * 20 };
+    } else {
+      const ac = Math.max(0, state.ads       - 1);
+      const rc = Math.max(0, state.rd        - 1);
+      const ec = Math.max(0, state.education - 1);
+      return { adsCount: ac, rdCount: rc, eduCount: ec,
+               ads: ac * 20, rd: rc * 20, edu: ec * 20,
+               total: (ac + rc + ec) * 20 };
+    }
+  }, [ruleMode, nextKuriChips, state.ads, state.rd, state.education]);
 
   // 損益分析（自動計算）
   const marginM    = priceP - varCostV;
@@ -426,13 +441,14 @@ export default function App() {
   const fmRate = totalMQ > 0 ? Math.round(results.costs.total / totalMQ * 100) : 0;
   const gmRate = 100 - fmRate;
 
-  // B/S 計算
-  const currentAssets    = cash + results.inventoryValue;
-  const deferredAssets   = results.adsValue + results.rdValue + results.eduValue;
-  const totalAssets      = currentAssets + results.machineValue + deferredAssets;
+  // B/S 計算（現金は右辺から自動算出）
+  const CAPITAL_C        = 300; // 資本金固定
+  const selfCapital      = CAPITAL_C + nextPeriodRetained;
   const totalLiabilities = taxProvision + shortTermLoan + longTermLoan;
-  const selfCapital      = totalAssets - totalLiabilities;
-  const capitalC         = selfCapital - nextPeriodRetained;
+  const totalRight       = totalLiabilities + selfCapital;
+  // 現金 = 右辺合計 - 貸付金 - 在庫 - 機械簿価 - 繰延資産
+  const cash             = totalRight - loanGiven - results.inventoryValue - machineBookValue - deferred.total;
+  const totalAssets      = totalRight; // 左右一致
 
   return (
     <div className="min-h-screen bg-gray-100 p-2 font-sans text-gray-800 pb-48">
@@ -653,13 +669,18 @@ export default function App() {
       <div className="max-w-4xl mx-auto mt-4 bg-white rounded-lg border border-gray-200 p-4 shadow">
         <h3 className="text-xs font-bold text-gray-700 mb-3">財務入力</h3>
         <div className="flex flex-col gap-3">
-          <SliderRow label="現金" value={cash} onChange={setCash} min={0} max={700} />
           <SliderRow label="長期借入" value={longTermLoan} onChange={setLongTermLoan} min={0} max={700} note={`利息 → ${results.ltlInterest}`} />
           <SliderRow label="短期借入" value={shortTermLoan} onChange={setShortTermLoan} min={0} max={700} note={`利息 → ${results.stlInterest}`} />
           <SliderRow label="特別損失" value={specialLoss} onChange={setSpecialLoss} min={0} max={60} note="→ 固定費算入" />
           <hr className="border-gray-200" />
           <SliderRow label="次期繰越利益" value={nextPeriodRetained} onChange={setNextPeriodRetained} min={-300} max={400} />
           <SliderRow label="納税充当金" value={taxProvision} onChange={setTaxProvision} min={0} max={200} />
+          <SliderRow label="貸付金" value={loanGiven} onChange={setLoanGiven} min={0} max={500} />
+          <SliderRow label="機械（簿価）" value={machineBookValue} onChange={setMachineBookValue} min={0} max={1000} />
+          <div className="flex items-center gap-2 pt-1 border-t border-gray-100">
+            <span className="text-xs font-bold text-gray-500 w-24 shrink-0">現金（自動）</span>
+            <span className={`font-mono font-bold text-sm ml-auto ${cash >= 0 ? 'text-gray-800' : 'text-red-600'}`}>{cash}</span>
+          </div>
         </div>
       </div>
 
@@ -868,19 +889,19 @@ export default function App() {
                     <div className="divide-y divide-gray-100">
                       <div className="flex justify-between px-3 py-1">
                         <span className="text-gray-600 text-xs">現金・預金</span>
-                        <span className="font-mono font-bold">{cash}</span>
+                        <span className={`font-mono font-bold text-xs ${cash < 0 ? 'text-red-600' : ''}`}>{cash}</span>
                       </div>
                       <div className="flex justify-between px-3 py-1">
                         <span className="text-gray-600 text-xs">貸付金</span>
-                        <span className="font-mono font-bold">0</span>
+                        <span className="font-mono font-bold text-xs">{loanGiven}</span>
                       </div>
                       <div className="flex justify-between px-3 py-1">
                         <span className="text-gray-600 text-xs">在庫（期末）</span>
-                        <span className="font-mono font-bold">{results.inventoryValue}</span>
+                        <span className="font-mono font-bold text-xs">{results.inventoryValue}</span>
                       </div>
                       <div className="flex justify-between px-3 py-1 bg-blue-50/60">
                         <span className="text-xs font-bold text-blue-700">流動資産計</span>
-                        <span className="font-mono font-bold text-blue-700">{currentAssets}</span>
+                        <span className="font-mono font-bold text-blue-700 text-xs">{cash + loanGiven + results.inventoryValue}</span>
                       </div>
                     </div>
 
@@ -890,27 +911,30 @@ export default function App() {
                     </div>
                     <div className="divide-y divide-gray-100">
                       <div className="flex justify-between px-3 py-1">
-                        <span className="text-gray-600 text-xs">機械</span>
-                        <span className="font-mono font-bold">{results.machineValue}</span>
+                        <span className="text-gray-600 text-xs">機械（簿価）</span>
+                        <span className="font-mono font-bold text-xs">{machineBookValue}</span>
                       </div>
                     </div>
 
                     {/* 繰延資産 */}
                     <div className="bg-yellow-50 border-t-2 border-b border-gray-300 px-2 py-1 mt-1">
                       <span className="text-[10px] font-bold text-yellow-700 bg-yellow-100 px-1 rounded">繰延資産</span>
+                      <span className="text-[9px] text-gray-400 ml-1">
+                        {ruleMode === 'senior' ? '（次繰盤・研究開発完成チップ×20）' : '（会社盤チップ-1×20）'}
+                      </span>
                     </div>
                     <div className="divide-y divide-gray-100">
                       <div className="flex justify-between px-3 py-1">
-                        <span className="text-gray-600 text-xs">広告（{state.ads}個）</span>
-                        <span className="font-mono font-bold">{results.adsValue}</span>
+                        <span className="text-gray-600 text-xs">広告（{deferred.adsCount}個）</span>
+                        <span className="font-mono font-bold text-xs">{deferred.ads}</span>
                       </div>
                       <div className="flex justify-between px-3 py-1">
-                        <span className="text-gray-600 text-xs">研究（{state.rd}個）</span>
-                        <span className="font-mono font-bold">{results.rdValue}</span>
+                        <span className="text-gray-600 text-xs">研究（{deferred.rdCount}個）</span>
+                        <span className="font-mono font-bold text-xs">{deferred.rd}</span>
                       </div>
                       <div className="flex justify-between px-3 py-1">
-                        <span className="text-gray-600 text-xs">教育（{state.education}個）</span>
-                        <span className="font-mono font-bold">{results.eduValue}</span>
+                        <span className="text-gray-600 text-xs">教育（{deferred.eduCount}個）</span>
+                        <span className="font-mono font-bold text-xs">{deferred.edu}</span>
                       </div>
                     </div>
                   </div>
@@ -957,7 +981,7 @@ export default function App() {
                       <div className="w-full divide-y divide-gray-100">
                         <div className="flex justify-between py-1">
                           <span className="text-gray-600 text-xs">資本金 C</span>
-                          <span className={`font-mono font-bold text-xs ${capitalC >= 0 ? '' : 'text-red-600'}`}>{capitalC}</span>
+                          <span className="font-mono font-bold text-xs">{CAPITAL_C}</span>
                         </div>
                         <div className="flex justify-between py-1">
                           <span className="text-gray-600 text-xs">次期繰越利益 D</span>
@@ -976,7 +1000,7 @@ export default function App() {
                   </div>
                   <div className="flex justify-between px-3 py-2 bg-indigo-50">
                     <span className="text-xs font-bold text-indigo-700">負債・資本合計</span>
-                    <span className="font-mono font-bold text-base text-indigo-800">{totalAssets}</span>
+                    <span className="font-mono font-bold text-base text-indigo-800">{totalRight}</span>
                   </div>
                 </div>
 
@@ -987,8 +1011,8 @@ export default function App() {
                     <span className="ml-2 text-gray-400">(納税{taxProvision} + 短借{shortTermLoan} + 長借{longTermLoan})</span>
                   </div>
                   <div className="bg-gray-50 rounded p-2 border">
-                    <b className="text-gray-700">繰延資産計:</b> {deferredAssets}
-                    <span className="ml-2 text-gray-400">(広告{results.adsValue} + 研究{results.rdValue} + 教育{results.eduValue})</span>
+                    <b className="text-gray-700">繰延資産計:</b> {deferred.total}
+                    <span className="ml-2 text-gray-400">(広告{deferred.ads} + 研究{deferred.rd} + 教育{deferred.edu})</span>
                   </div>
                 </div>
               </div>
