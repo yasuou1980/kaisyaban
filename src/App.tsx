@@ -772,54 +772,57 @@ export default function App() {
                   MQ会計表（STRAC） — {period}期
                 </h2>
 
-                {/* 上段: PVMボックス（P左・V右上・M右下、比率可変） + Qボックス */}
-                <div className="flex gap-3 mb-3">
+                {/* 横長時: [PVMボックス＋Qボックス] と [MQ会計表] を横並び */}
+                <div className="flex flex-col lg:flex-row lg:items-start lg:gap-3">
 
-                  {/* PVMボックス */}
-                  <div className="border-2 border-gray-600 rounded-lg overflow-hidden shrink-0" style={{height: '150px'}}>
-                    <div className="flex h-full">
-                      {/* ①P 左列（全高） */}
-                      <div className="border-r-2 border-gray-600 flex flex-col items-center justify-center px-4 bg-blue-50" style={{minWidth: '80px'}}>
-                        <p className="text-[10px] text-gray-500 font-bold">①P</p>
-                        <p className="text-[9px] text-gray-400">販売価格</p>
-                        <p className="font-mono font-bold text-2xl text-blue-700 mt-0.5">{priceP.toFixed(1)}</p>
-                      </div>
-                      {/* 右列: V上・M下（比率可変） */}
-                      <div className="flex flex-col" style={{minWidth: '90px'}}>
-                        {/* ②V 上（vRate%高さ） */}
-                        <div className="border-b-2 border-gray-600 flex flex-col items-center justify-center px-3 bg-red-50" style={{flex: Math.max(vRate, 20)}}>
-                          <p className="text-[10px] text-gray-500 font-bold">②V</p>
-                          <p className="text-[9px] text-gray-400">変動費単価</p>
-                          <p className="font-mono font-bold text-xl text-red-600 mt-0.5">{varCostV.toFixed(1)}</p>
+                  {/* 左カラム: PVMボックス + Qボックス（縦積み） */}
+                  <div className="flex lg:flex-col gap-3 mb-3 lg:mb-0 lg:shrink-0">
+
+                    {/* PVMボックス */}
+                    <div className="border-2 border-gray-600 rounded-lg overflow-hidden shrink-0" style={{height: '150px'}}>
+                      <div className="flex h-full">
+                        {/* ①P 左列（全高） */}
+                        <div className="border-r-2 border-gray-600 flex flex-col items-center justify-center px-4 bg-blue-50" style={{minWidth: '80px'}}>
+                          <p className="text-[10px] text-gray-500 font-bold">①P</p>
+                          <p className="text-[9px] text-gray-400">販売価格</p>
+                          <p className="font-mono font-bold text-2xl text-blue-700 mt-0.5">{priceP.toFixed(1)}</p>
                         </div>
-                        {/* ③M 下（mRate%高さ） */}
-                        <div className="flex flex-col items-center justify-center px-3 bg-green-50" style={{flex: Math.max(mRate, 20)}}>
-                          <p className="text-[10px] text-gray-500 font-bold">③M</p>
-                          <p className="text-[9px] text-gray-400">限界利益</p>
-                          <p className="font-mono font-bold text-xl text-green-700 mt-0.5">{marginM.toFixed(1)}</p>
+                        {/* 右列: V上・M下（比率可変） */}
+                        <div className="flex flex-col" style={{minWidth: '90px'}}>
+                          {/* ②V 上（vRate%高さ） */}
+                          <div className="border-b-2 border-gray-600 flex flex-col items-center justify-center px-3 bg-red-50" style={{flex: Math.max(vRate, 20)}}>
+                            <p className="text-[10px] text-gray-500 font-bold">②V</p>
+                            <p className="text-[9px] text-gray-400">変動費単価</p>
+                            <p className="font-mono font-bold text-xl text-red-600 mt-0.5">{varCostV.toFixed(1)}</p>
+                          </div>
+                          {/* ③M 下（mRate%高さ） */}
+                          <div className="flex flex-col items-center justify-center px-3 bg-green-50" style={{flex: Math.max(mRate, 20)}}>
+                            <p className="text-[10px] text-gray-500 font-bold">③M</p>
+                            <p className="text-[9px] text-gray-400">限界利益</p>
+                            <p className="font-mono font-bold text-xl text-green-700 mt-0.5">{marginM.toFixed(1)}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Qボックス */}
+                    <div className="border-2 border-green-500 rounded-lg bg-green-50 shrink-0 overflow-hidden">
+                      <div className="bg-green-600 text-white text-center text-[10px] font-bold py-1 tracking-wider">販売数量</div>
+                      <div className="p-3 space-y-3 text-center">
+                        <div>
+                          <p className="text-[10px] text-gray-500">④Q 目標販売数</p>
+                          <p className="font-mono font-bold text-3xl text-green-800">{ceilQ}</p>
+                        </div>
+                        <div className="border-t border-green-200 pt-2">
+                          <p className="text-[10px] text-gray-500">Q0 損益分岐点</p>
+                          <p className="font-mono font-bold text-xl text-orange-600">{Math.ceil(breakQ0)}</p>
                         </div>
                       </div>
                     </div>
                   </div>
-
-                  {/* Qボックス */}
-                  <div className="border-2 border-green-500 rounded-lg bg-green-50 shrink-0 overflow-hidden">
-                    <div className="bg-green-600 text-white text-center text-[10px] font-bold py-1 tracking-wider">販売数量</div>
-                    <div className="p-3 space-y-3 text-center">
-                      <div>
-                        <p className="text-[10px] text-gray-500">④Q 目標販売数</p>
-                        <p className="font-mono font-bold text-3xl text-green-800">{ceilQ}</p>
-                      </div>
-                      <div className="border-t border-green-200 pt-2">
-                        <p className="text-[10px] text-gray-500">Q0 損益分岐点</p>
-                        <p className="font-mono font-bold text-xl text-orange-600">{Math.ceil(breakQ0)}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
 
                 {/* MQ会計表: PQ最左列・右上VQ・右下左MQ・右下右上F・右下右下G */}
-                <div className="border-2 border-gray-700 rounded-lg" style={{overflow: 'visible'}}>
+                <div className="flex-1 border-2 border-gray-700 rounded-lg" style={{overflow: 'visible'}}>
                   <div className="bg-gray-700 text-white text-center text-xs font-bold py-1 tracking-widest rounded-t-md">MQ会計表</div>
 
                   <div className="flex border border-gray-700 rounded-b-md overflow-hidden" style={{minHeight: '260px'}}>
@@ -892,6 +895,7 @@ export default function App() {
                     </div>
                   </div>
                 </div>
+                </div>{/* end lg:flex-row wrapper */}
 
                 {/* 固定費内訳 */}
                 <div className="mt-3 bg-gray-50 rounded p-2 border border-gray-200">
