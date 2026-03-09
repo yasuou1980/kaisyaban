@@ -819,10 +819,10 @@ export default function App() {
                 </div>
 
                 {/* MQ会計表: PQ最左列・右上VQ・右下左MQ・右下右上F・右下右下G */}
-                <div className="border-2 border-gray-700 rounded-lg overflow-hidden">
-                  <div className="bg-gray-700 text-white text-center text-xs font-bold py-1 tracking-widest">MQ会計表</div>
+                <div className="border-2 border-gray-700 rounded-lg" style={{overflow: 'visible'}}>
+                  <div className="bg-gray-700 text-white text-center text-xs font-bold py-1 tracking-widest rounded-t-md">MQ会計表</div>
 
-                  <div className="flex" style={{minHeight: '260px'}}>
+                  <div className="flex border border-gray-700 rounded-b-md overflow-hidden" style={{minHeight: '260px'}}>
 
                     {/* ⑤PQ 最左列（全高） */}
                     <div className="border-r-2 border-gray-700 flex flex-col items-center justify-center p-2 bg-gray-100 shrink-0" style={{width: '64px'}}>
@@ -834,9 +834,9 @@ export default function App() {
                     {/* 右エリア */}
                     <div className="flex-1 flex flex-col">
 
-                      {/* ⑥VQ 上（vRate比率高さ） */}
-                      <div className="border-b-2 border-gray-700 flex items-center gap-2 p-3 bg-red-50/40" style={{flex: Math.max(vRate, 15)}}>
-                        <div className="strac-oval shrink-0" style={{width: '54px', height: '54px'}}>
+                      {/* ⑥VQ 上（vRate比率高さ）— V率オーバルをPQ/VQ境界線上に */}
+                      <div className="relative border-b-2 border-gray-700 flex items-center p-3 bg-red-50/40" style={{flex: Math.max(vRate, 15)}}>
+                        <div className="strac-oval absolute top-1/2 left-0 -translate-x-1/2 -translate-y-1/2 z-10" style={{width: '54px', height: '54px'}}>
                           <span className="text-[9px] text-gray-500">V率</span>
                           <span className="font-bold text-sm text-red-600">{vRate}%</span>
                         </div>
@@ -849,48 +849,42 @@ export default function App() {
                       {/* 下エリア: MQ左 + F/G右（mRate比率高さ） */}
                       <div className="flex" style={{flex: Math.max(mRate, 15)}}>
 
-                        {/* ⑦MQ 下左 */}
-                        <div className="border-r-2 border-gray-700 flex flex-col items-center justify-between p-2 bg-green-50/40" style={{width: '38%'}}>
-                          <div className="text-center">
-                            <p className="text-[9px] text-gray-400 font-bold">⑦MQ（限界利益）</p>
-                            <p className="font-mono font-bold text-xl text-green-700">{Math.ceil(totalMQ)}</p>
-                          </div>
-                          <div className="strac-oval" style={{width: '54px', height: '54px'}}>
+                        {/* ⑦MQ 下左 — M率オーバルをPQ/MQ境界線上に */}
+                        <div className="relative border-r-2 border-gray-700 flex flex-col items-center justify-center p-2 bg-green-50/40" style={{width: '38%'}}>
+                          <div className="strac-oval absolute top-1/2 left-0 -translate-x-1/2 -translate-y-1/2 z-10" style={{width: '54px', height: '54px'}}>
                             <span className="text-[9px] text-gray-500">m率</span>
                             <span className="font-bold text-sm text-green-700">{mRate}%</span>
+                          </div>
+                          <div className="text-center pl-4">
+                            <p className="text-[9px] text-gray-400 font-bold">⑦MQ（限界利益）</p>
+                            <p className="font-mono font-bold text-xl text-green-700">{Math.ceil(totalMQ)}</p>
                           </div>
                         </div>
 
                         {/* F/G 右エリア */}
                         <div className="flex-1 flex flex-col">
 
-                          {/* ⑧F 上（fmRate比率高さ） */}
-                          <div className="border-b-2 border-gray-700 flex items-center justify-between p-2 bg-orange-50/40" style={{flex: Math.max(fmRate, 10)}}>
+                          {/* ⑧F 上（fmRate比率高さ）— f/m比率オーバルをMQ/F境界線上に */}
+                          <div className="relative border-b-2 border-gray-700 flex items-center p-2 pl-8 bg-orange-50/40" style={{flex: Math.max(fmRate, 10)}}>
+                            <div className="strac-oval absolute top-1/2 left-0 -translate-x-1/2 -translate-y-1/2 z-10" style={{width: '54px', height: '54px'}}>
+                              <span className="text-[7px] text-gray-500">f/m比率</span>
+                              <span className="font-bold text-sm text-orange-600">{fmRate}%</span>
+                            </div>
                             <div>
                               <p className="text-[9px] text-gray-400 font-bold">⑧F（固定費）</p>
                               <p className="font-mono font-bold text-xl text-orange-700">{results.costs.total}</p>
                             </div>
-                            <div className="text-right text-[9px]">
-                              <p className="font-bold text-gray-600">f/m比率</p>
-                              <p className="font-bold text-base text-orange-600">{fmRate}%</p>
-                            </div>
                           </div>
 
-                          {/* ⑨G 下（gmRate比率高さ） */}
-                          <div className="flex items-center justify-between p-2 bg-blue-50/40" style={{flex: Math.max(gmRate, 10)}}>
-                            <div className="flex items-center gap-1">
-                              <div className="strac-oval shrink-0" style={{width: '46px', height: '46px'}}>
-                                <span className="text-[8px] text-gray-400">⑨G</span>
-                                <span className="font-bold text-xs text-blue-700">{gmRate}%</span>
-                              </div>
-                              <div>
-                                <p className="text-[9px] text-gray-400 font-bold">利益</p>
-                                <p className={`font-mono font-bold text-xl ${targetProfitG >= 0 ? 'text-blue-700' : 'text-red-600'}`}>{fmtNum(targetProfitG)}</p>
-                              </div>
+                          {/* ⑨G 下（gmRate比率高さ）— g/m比率オーバルをMQ/G境界線上に */}
+                          <div className="relative flex items-center p-2 pl-8 bg-blue-50/40" style={{flex: Math.max(gmRate, 10)}}>
+                            <div className="strac-oval absolute top-1/2 left-0 -translate-x-1/2 -translate-y-1/2 z-10" style={{width: '54px', height: '54px'}}>
+                              <span className="text-[7px] text-gray-400">g/m比率</span>
+                              <span className="font-bold text-sm text-blue-700">{gmRate}%</span>
                             </div>
-                            <div className="text-right text-[9px]">
-                              <p className="font-bold text-gray-600">g/m比率</p>
-                              <p className="font-bold text-base text-blue-600">{gmRate}%</p>
+                            <div>
+                              <p className="text-[9px] text-gray-400 font-bold">⑨G 利益</p>
+                              <p className={`font-mono font-bold text-xl ${targetProfitG >= 0 ? 'text-blue-700' : 'text-red-600'}`}>{fmtNum(targetProfitG)}</p>
                             </div>
                           </div>
                         </div>
