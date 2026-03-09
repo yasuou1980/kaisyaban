@@ -443,8 +443,8 @@ export default function App() {
   const breakQ0    = marginM > 0 ? results.costs.total / marginM : 0; // Q0 = F / M
 
   // STRAC 比率
-  const vRate  = priceP > 0 ? Math.round(varCostV / priceP * 100) : 0;
-  const mRate  = 100 - vRate;
+  const vRate  = revenueQ > 0 ? Math.round(varTotalQ / revenueQ * 100) : 0;
+  const mRate  = revenueQ > 0 ? Math.round(totalMQ   / revenueQ * 100) : 0;
   const fmRate = totalMQ > 0 ? Math.round(results.costs.total / totalMQ * 100) : 0;
   const gmRate = 100 - fmRate;
 
