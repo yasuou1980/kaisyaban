@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { SnapshotPanel, useSnapshots } from './snapshots';
 
 // --- 1. スタイル定義 (CSS) ---
 const customStyles = `
@@ -153,6 +154,16 @@ const CAPACITY = {
 type ChipCounts = { red: number; blue: number; yellow: number };
 type NextKuriArea = 'rdInput' | 'rdComplete';
 type ChipColor = 'red' | 'blue' | 'yellow';
+
+// スナップショットに保存する入力値一式
+type SnapshotInputs = {
+  period: number; dice: number; ruleMode: 'junior' | 'senior';
+  state: typeof INITIAL_STATE;
+  nextKuriChips: Record<NextKuriArea, ChipCounts>;
+  longTermLoan: number; shortTermLoan: number; specialLoss: number;
+  nextPeriodRetained: number; taxProvision: number; loanGiven: number; machineBookValue: number;
+  targetProfitG: number; priceP: number; avgMatPrice: number;
+};
 
 // --- 3. UIコンポーネント ---
 const WorkerToken = () => (
@@ -324,6 +335,8 @@ export default function App() {
   // B/S・P/L モーダル
   const [showBSPL, setShowBSPL] = useState(false);
   const [bsplTab, setBsplTab] = useState<'bs' | 'pl'>('pl');
+  const [showHistory, setShowHistory] = useState(false);
+  const snapshots = useSnapshots<SnapshotInputs>();
 
   const update = (key: keyof typeof INITIAL_STATE, delta: number) => {
     setState((prev) => {
@@ -457,6 +470,28 @@ export default function App() {
   const cash             = totalRight - loanGiven - results.inventoryValue - machineBookValue - deferred.total;
   const totalAssets      = totalRight; // 左右一致
 
+  const saveSnapshot = (label: string) =>
+    snapshots.add(
+      label,
+      { pq: revenueQ, vq: varTotalQ, mq: totalMQ, f: results.costs.total, selfCapital, cash },
+      {
+        period, dice, ruleMode, state, nextKuriChips,
+        longTermLoan, shortTermLoan, specialLoss, nextPeriodRetained, taxProvision, loanGiven, machineBookValue,
+        targetProfitG, priceP, avgMatPrice,
+      },
+    );
+
+  const restoreSnapshot = (inp: SnapshotInputs) => {
+    setPeriod(inp.period); setDice(inp.dice); setRuleMode(inp.ruleMode);
+    setState({ ...INITIAL_STATE, ...inp.state });
+    setNextKuriChips(inp.nextKuriChips);
+    setLongTermLoan(inp.longTermLoan); setShortTermLoan(inp.shortTermLoan); setSpecialLoss(inp.specialLoss);
+    setNextPeriodRetained(inp.nextPeriodRetained); setTaxProvision(inp.taxProvision);
+    setLoanGiven(inp.loanGiven); setMachineBookValue(inp.machineBookValue);
+    setTargetProfitG(inp.targetProfitG); setPriceP(inp.priceP); setAvgMatPrice(inp.avgMatPrice);
+    setShowHistory(false);
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 p-2 font-sans text-gray-800 pb-48">
       <style>{customStyles}</style>
@@ -485,6 +520,12 @@ export default function App() {
             className="px-3 py-1.5 text-xs font-bold bg-indigo-600 text-white rounded shadow hover:bg-indigo-700 transition-colors"
           >
             B/S・P/L
+          </button>
+          <button
+            onClick={() => setShowHistory(true)}
+            className="px-3 py-1.5 text-xs font-bold bg-green-600 text-white rounded shadow hover:bg-green-700 transition-colors"
+          >
+            推移({snapshots.list.length})
           </button>
         </div>
       </div>
@@ -743,6 +784,28 @@ export default function App() {
           </div>
         </div>
       </div>
+
+      {/* --- 推移（スナップショット）モーダル --- */}
+      {showHistory && (
+        <div className="modal-overlay" onClick={() => setShowHistory(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-base font-bold text-gray-800">スナップショット推移</h2>
+              <button onClick={() => setShowHistory(false)}
+                className="w-8 h-8 flex items-center justify-center bg-gray-200 hover:bg-gray-300 rounded-full text-gray-600 font-bold text-lg">×</button>
+            </div>
+            <SnapshotPanel
+              snapshots={snapshots.list}
+              defaultLabel={`${period}期 #${snapshots.list.length + 1}`}
+              onSave={saveSnapshot}
+              onRestore={snap => restoreSnapshot(snap.inputs)}
+              onRemove={snapshots.remove}
+              onClear={snapshots.clear}
+              onImport={snapshots.replaceAll}
+            />
+          </div>
+        </div>
+      )}
 
       {/* --- B/S・P/L モーダル --- */}
       {showBSPL && (
