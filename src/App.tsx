@@ -174,12 +174,12 @@ const WorkerToken = () => (
 );
 
 const MiniControl = ({ label, count, onInc, onDec }: any) => (
-  <div className="flex flex-col items-center bg-white/60 rounded p-1 shadow-sm border border-gray-200 w-[60px]">
+  <div className="flex flex-col items-center bg-white/60 rounded-sm p-1 shadow-xs border border-gray-200 w-[60px]">
     <span className="text-[10px] font-bold text-gray-600 leading-tight">{label}</span>
     <div className="flex items-center justify-between w-full mt-1">
-      <button onClick={onDec} className="w-4 h-4 flex items-center justify-center bg-red-100 text-red-600 rounded text-xs font-bold hover:bg-red-200">-</button>
+      <button onClick={onDec} className="w-4 h-4 flex items-center justify-center bg-red-100 text-red-600 rounded-sm text-xs font-bold hover:bg-red-200">-</button>
       <span className="text-xs font-bold">{count}</span>
-      <button onClick={onInc} className="w-4 h-4 flex items-center justify-center bg-green-100 text-green-600 rounded text-xs font-bold hover:bg-green-200">+</button>
+      <button onClick={onInc} className="w-4 h-4 flex items-center justify-center bg-green-100 text-green-600 rounded-sm text-xs font-bold hover:bg-green-200">+</button>
     </div>
   </div>
 );
@@ -199,7 +199,7 @@ const SafetyTray = ({ count, typeClass }: { count: number; typeClass: string }) 
         ))}
       </div>
       {overflow > 0 && (
-        <div className="mt-2 flex flex-wrap gap-1 justify-center max-w-[100px] bg-gray-200/40 p-1 rounded">
+        <div className="mt-2 flex flex-wrap gap-1 justify-center max-w-[100px] bg-gray-200/40 p-1 rounded-sm">
           {[...Array(overflow)].map((_, i) => <div key={i} className={`token-cube ${typeClass}`} />)}
         </div>
       )}
@@ -220,7 +220,7 @@ const NextKuriSection = ({
     { color: 'yellow', label: '黄', cls: 'chip-yellow' },
   ];
   return (
-    <div className="bg-white/80 rounded-xl border-2 border-green-300 p-2 flex flex-col gap-2 shadow">
+    <div className="bg-white/80 rounded-xl border-2 border-green-300 p-2 flex flex-col gap-2 shadow-sm">
       <div className="text-center border-b border-green-200 pb-1">
         <div className="text-xs font-bold text-gray-700">{title}</div>
       </div>
@@ -232,9 +232,9 @@ const NextKuriSection = ({
               <span key={i} className={`invest-chip ${cls}`} onClick={() => onUpdate(color, -1)} />
             ))}
           </div>
-          <button onClick={() => onUpdate(color, -1)} className="w-4 h-4 flex items-center justify-center bg-red-100 text-red-600 rounded text-[10px] font-bold hover:bg-red-200 shrink-0">-</button>
+          <button onClick={() => onUpdate(color, -1)} className="w-4 h-4 flex items-center justify-center bg-red-100 text-red-600 rounded-sm text-[10px] font-bold hover:bg-red-200 shrink-0">-</button>
           <span className="w-4 text-center text-[10px] font-mono font-bold shrink-0">{chips[color]}</span>
-          <button onClick={() => onUpdate(color, 1)} className="w-4 h-4 flex items-center justify-center bg-green-100 text-green-600 rounded text-[10px] font-bold hover:bg-green-200 shrink-0">+</button>
+          <button onClick={() => onUpdate(color, 1)} className="w-4 h-4 flex items-center justify-center bg-green-100 text-green-600 rounded-sm text-[10px] font-bold hover:bg-green-200 shrink-0">+</button>
         </div>
       ))}
     </div>
@@ -286,7 +286,7 @@ const CalcRow = ({
 }) => {
   const disp = fmtNum(value, ceil);
   return (
-    <div className={`flex items-center gap-2 py-0.5 ${highlight ? 'bg-blue-50 rounded px-1' : ''}`}>
+    <div className={`flex items-center gap-2 py-0.5 ${highlight ? 'bg-blue-50 rounded-sm px-1' : ''}`}>
       <span className="text-xs font-bold text-gray-700 w-24 shrink-0">{label}</span>
       <span className="text-[10px] text-gray-400 flex-1">{formula}</span>
       <span className={`font-mono font-bold text-sm w-16 text-right shrink-0 ${highlight ? 'text-blue-700' : 'text-gray-700'}`}>
@@ -497,33 +497,33 @@ export default function App() {
       <style>{customStyles}</style>
 
       {/* --- コントロールパネル --- */}
-      <div className="max-w-4xl mx-auto bg-white rounded-lg shadow p-3 mb-4 flex flex-wrap gap-4 items-center justify-between border-t-4 border-blue-600">
+      <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-sm p-3 mb-4 flex flex-wrap gap-4 items-center justify-between border-t-4 border-blue-600">
         <h1 className="text-lg font-bold text-gray-800">会社盤 シミュレーター</h1>
         <div className="flex gap-4 items-center flex-wrap">
-          <div className="flex bg-gray-100 rounded p-1">
-            <button onClick={() => setRuleMode('junior')} className={`px-3 py-1 text-xs rounded ${ruleMode === 'junior' ? 'bg-white shadow font-bold text-blue-600' : 'text-gray-500'}`}>ジュニア</button>
-            <button onClick={() => setRuleMode('senior')} className={`px-3 py-1 text-xs rounded ${ruleMode === 'senior' ? 'bg-white shadow font-bold text-blue-600' : 'text-gray-500'}`}>シニア</button>
+          <div className="flex bg-gray-100 rounded-sm p-1">
+            <button onClick={() => setRuleMode('junior')} className={`px-3 py-1 text-xs rounded-sm ${ruleMode === 'junior' ? 'bg-white shadow-sm font-bold text-blue-600' : 'text-gray-500'}`}>ジュニア</button>
+            <button onClick={() => setRuleMode('senior')} className={`px-3 py-1 text-xs rounded-sm ${ruleMode === 'senior' ? 'bg-white shadow-sm font-bold text-blue-600' : 'text-gray-500'}`}>シニア</button>
           </div>
-          <div className="flex rounded shadow-sm border overflow-hidden">
+          <div className="flex rounded-sm shadow-xs border overflow-hidden">
             {[2, 3, 4, 5].map(p => (
               <button key={p} onClick={() => setPeriod(p)} className={`px-3 py-1 text-xs ${period === p ? 'bg-blue-600 text-white font-bold' : 'bg-white hover:bg-gray-50'}`}>{p}期</button>
             ))}
           </div>
           <div className="flex flex-col w-24">
-            <input type="range" min="1" max="6" value={dice} onChange={e => setDice(parseInt(e.target.value))} className="w-full h-1 bg-gray-300 rounded cursor-pointer" />
+            <input type="range" min="1" max="6" value={dice} onChange={e => setDice(parseInt(e.target.value))} className="w-full h-1 bg-gray-300 rounded-sm cursor-pointer" />
             <div className="flex justify-between text-[10px] font-mono font-bold mt-1">
               <span>サイコロ:</span><span className="text-blue-600 text-sm">{dice}</span>
             </div>
           </div>
           <button
             onClick={() => setShowBSPL(true)}
-            className="px-3 py-1.5 text-xs font-bold bg-indigo-600 text-white rounded shadow hover:bg-indigo-700 transition-colors"
+            className="px-3 py-1.5 text-xs font-bold bg-indigo-600 text-white rounded-sm shadow-sm hover:bg-indigo-700 transition-colors"
           >
             B/S・P/L
           </button>
           <button
             onClick={() => setShowHistory(true)}
-            className="px-3 py-1.5 text-xs font-bold bg-green-600 text-white rounded shadow hover:bg-green-700 transition-colors"
+            className="px-3 py-1.5 text-xs font-bold bg-green-600 text-white rounded-sm shadow-sm hover:bg-green-700 transition-colors"
           >
             推移({snapshots.list.length})
           </button>
@@ -550,12 +550,12 @@ export default function App() {
           {/* 左: 材料倉庫 */}
           <div className="bg-gray-300 rounded-lg p-2 border-2 border-gray-400 min-h-[400px] relative shadow-inner flex flex-col">
             <div className="area-label">材料倉庫</div>
-            <div className="absolute top-2 right-2 flex items-center gap-1 text-xs bg-white px-2 py-1 rounded border border-gray-300 cursor-pointer z-20" onClick={() => toggleSafety('safetyWarehouse')}>
+            <div className="absolute top-2 right-2 flex items-center gap-1 text-xs bg-white px-2 py-1 rounded-sm border border-gray-300 cursor-pointer z-20" onClick={() => toggleSafety('safetyWarehouse')}>
               <span>無災害(倉)</span>
               <div className={`w-4 h-4 border ${state.safetyWarehouse ? 'bg-blue-500 border-blue-600' : 'bg-white border-gray-400'}`}></div>
             </div>
             {ruleMode === 'senior' && (
-              <div className="mt-8 mb-1 bg-orange-50 border border-orange-200 rounded px-2 py-0.5 text-center">
+              <div className="mt-8 mb-1 bg-orange-50 border border-orange-200 rounded-sm px-2 py-0.5 text-center">
                 <span className="text-[10px] text-orange-600 font-bold">仕入可能</span>
                 <span className="text-sm font-bold text-orange-700 ml-1">{results.purchaseCap}個</span>
               </div>
@@ -570,11 +570,11 @@ export default function App() {
                 </div>
               )}
             </div>
-            <div className="absolute bottom-0 left-0 right-0 flex flex-col items-center py-2 gap-0.5 bg-white/65 backdrop-blur-sm border-t border-gray-300/60 rounded-b-lg">
+            <div className="absolute bottom-0 left-0 right-0 flex flex-col items-center py-2 gap-0.5 bg-white/65 backdrop-blur-xs border-t border-gray-300/60 rounded-b-lg">
               <div className="flex items-center gap-3">
-                <button onClick={() => update('materials', -1)} className="w-9 h-9 rounded-full bg-red-500/70 hover:bg-red-600/80 text-white font-bold text-xl flex items-center justify-center shadow-sm transition-colors select-none">−</button>
+                <button onClick={() => update('materials', -1)} className="w-9 h-9 rounded-full bg-red-500/70 hover:bg-red-600/80 text-white font-bold text-xl flex items-center justify-center shadow-xs transition-colors select-none">−</button>
                 <span className="font-mono font-bold text-sm w-8 text-center">{state.materials}</span>
-                <button onClick={() => update('materials', 1)} className="w-9 h-9 rounded-full bg-green-500/70 hover:bg-green-600/80 text-white font-bold text-xl flex items-center justify-center shadow-sm transition-colors select-none">+</button>
+                <button onClick={() => update('materials', 1)} className="w-9 h-9 rounded-full bg-green-500/70 hover:bg-green-600/80 text-white font-bold text-xl flex items-center justify-center shadow-xs transition-colors select-none">+</button>
               </div>
               <span className="text-[10px] text-gray-600">@{results.invP.mat} = <b className="text-gray-800">{state.materials * results.invP.mat}</b></span>
             </div>
@@ -587,7 +587,7 @@ export default function App() {
               <div className={`token-pc ${state.computerOn ? '' : 'token-pc-off'}`}>PC</div>
               <span className="text-[9px] font-bold text-gray-600 mt-1">{state.computerOn ? 'ON' : 'OFF'}</span>
             </div>
-            <div className="mt-8 mb-1 bg-blue-50 border border-blue-200 rounded px-2 py-0.5 text-center">
+            <div className="mt-8 mb-1 bg-blue-50 border border-blue-200 rounded-sm px-2 py-0.5 text-center">
               <span className="text-[10px] text-blue-600 font-bold">製造能力</span>
               <span className="text-sm font-bold text-blue-700 ml-1">{results.prodCap}個</span>
             </div>
@@ -611,16 +611,16 @@ export default function App() {
               <div className="flex flex-wrap gap-1 justify-center max-w-[100px] mb-2">
                 {[...Array(state.wip)].map((_, i) => <div key={i} className="token-cube token-wip" />)}
               </div>
-              <div className="absolute bottom-0 left-0 right-0 flex flex-col items-center py-2 gap-0.5 bg-white/65 backdrop-blur-sm border-t border-gray-300/60 rounded-b">
+              <div className="absolute bottom-0 left-0 right-0 flex flex-col items-center py-2 gap-0.5 bg-white/65 backdrop-blur-xs border-t border-gray-300/60 rounded-b">
                 <div className="flex items-center gap-3">
-                  <button onClick={() => update('wip', -1)} className="w-9 h-9 rounded-full bg-red-500/70 hover:bg-red-600/80 text-white font-bold text-xl flex items-center justify-center shadow-sm transition-colors select-none">−</button>
+                  <button onClick={() => update('wip', -1)} className="w-9 h-9 rounded-full bg-red-500/70 hover:bg-red-600/80 text-white font-bold text-xl flex items-center justify-center shadow-xs transition-colors select-none">−</button>
                   <span className="font-mono font-bold text-sm w-8 text-center">{state.wip}</span>
-                  <button onClick={() => update('wip', 1)} className="w-9 h-9 rounded-full bg-green-500/70 hover:bg-green-600/80 text-white font-bold text-xl flex items-center justify-center shadow-sm transition-colors select-none">+</button>
+                  <button onClick={() => update('wip', 1)} className="w-9 h-9 rounded-full bg-green-500/70 hover:bg-green-600/80 text-white font-bold text-xl flex items-center justify-center shadow-xs transition-colors select-none">+</button>
                 </div>
                 <span className="text-[10px] text-gray-600">@{results.invP.wip} = <b className="text-gray-800">{state.wip * results.invP.wip}</b></span>
               </div>
             </div>
-            <div className="mt-auto bg-gray-200/50 rounded p-2 flex flex-col gap-2">
+            <div className="mt-auto bg-gray-200/50 rounded-sm p-2 flex flex-col gap-2">
               <div className="flex items-center justify-between">
                 <div className="flex gap-1 flex-wrap max-w-[80px]">
                   {[...Array(state.workers)].map((_, i) => <WorkerToken key={i} />)}
@@ -647,11 +647,11 @@ export default function App() {
           {/* 右: 営業所 */}
           <div className="bg-gray-300 rounded-lg p-2 border-2 border-gray-400 min-h-[400px] relative shadow-inner flex flex-col">
             <div className="area-label">営業所</div>
-            <div className="absolute top-2 right-2 flex items-center gap-1 text-xs bg-white px-2 py-1 rounded border border-gray-300 cursor-pointer z-20" onClick={() => toggleSafety('safetySales')}>
+            <div className="absolute top-2 right-2 flex items-center gap-1 text-xs bg-white px-2 py-1 rounded-sm border border-gray-300 cursor-pointer z-20" onClick={() => toggleSafety('safetySales')}>
               <span>無災害(営)</span>
               <div className={`w-4 h-4 border ${state.safetySales ? 'bg-blue-500 border-blue-600' : 'bg-white border-gray-400'}`}></div>
             </div>
-            <div className="mt-8 mb-1 bg-green-50 border border-green-200 rounded px-2 py-0.5 text-center">
+            <div className="mt-8 mb-1 bg-green-50 border border-green-200 rounded-sm px-2 py-0.5 text-center">
               <span className="text-[10px] text-green-600 font-bold">販売個数</span>
               <span className="text-sm font-bold text-green-700 ml-1">{results.salesCap}個</span>
             </div>
@@ -663,16 +663,16 @@ export default function App() {
                   {[...Array(state.products)].map((_, i) => <div key={i} className="token-cube token-prod" />)}
                 </div>
               )}
-              <div className="absolute bottom-0 left-0 right-0 flex flex-col items-center py-2 gap-0.5 bg-white/65 backdrop-blur-sm border-t border-gray-300/60 rounded-b-lg">
+              <div className="absolute bottom-0 left-0 right-0 flex flex-col items-center py-2 gap-0.5 bg-white/65 backdrop-blur-xs border-t border-gray-300/60 rounded-b-lg">
                 <div className="flex items-center gap-3">
-                  <button onClick={() => update('products', -1)} className="w-9 h-9 rounded-full bg-red-500/70 hover:bg-red-600/80 text-white font-bold text-xl flex items-center justify-center shadow-sm transition-colors select-none">−</button>
+                  <button onClick={() => update('products', -1)} className="w-9 h-9 rounded-full bg-red-500/70 hover:bg-red-600/80 text-white font-bold text-xl flex items-center justify-center shadow-xs transition-colors select-none">−</button>
                   <span className="font-mono font-bold text-sm w-8 text-center">{state.products}</span>
-                  <button onClick={() => update('products', 1)} className="w-9 h-9 rounded-full bg-green-500/70 hover:bg-green-600/80 text-white font-bold text-xl flex items-center justify-center shadow-sm transition-colors select-none">+</button>
+                  <button onClick={() => update('products', 1)} className="w-9 h-9 rounded-full bg-green-500/70 hover:bg-green-600/80 text-white font-bold text-xl flex items-center justify-center shadow-xs transition-colors select-none">+</button>
                 </div>
                 <span className="text-[10px] text-gray-600">@{results.invP.prod} = <b className="text-gray-800">{state.products * results.invP.prod}</b></span>
               </div>
             </div>
-            <div className="mt-auto h-[120px] bg-gray-200/50 rounded p-2 grid grid-cols-2 gap-2 border-t border-gray-300">
+            <div className="mt-auto h-[120px] bg-gray-200/50 rounded-sm p-2 grid grid-cols-2 gap-2 border-t border-gray-300">
               <div className="flex flex-col items-center border-r border-gray-300 pr-1">
                 <span className="text-[10px] font-bold mb-1">セールス</span>
                 <div className="flex flex-wrap gap-1 justify-center max-w-[60px] mb-1">
@@ -697,7 +697,7 @@ export default function App() {
 
         {/* 研究開発 */}
         <div className="mt-4 bg-gray-300 rounded-lg p-3 border-2 border-gray-400 w-1/3 relative shadow-inner">
-          <div className="absolute -top-3 left-2 bg-white border border-blue-500 px-2 text-xs font-bold text-blue-800 rounded">研究開発</div>
+          <div className="absolute -top-3 left-2 bg-white border border-blue-500 px-2 text-xs font-bold text-blue-800 rounded-sm">研究開発</div>
           <div className="flex items-center justify-between mt-2">
             <div className="flex gap-1 flex-wrap">
               {[...Array(state.rd)].map((_, i) => <div key={i} className="token-rd" />)}
@@ -708,7 +708,7 @@ export default function App() {
       </div>
 
       {/* --- 在庫評価額 --- */}
-      <div className="max-w-4xl mx-auto mt-4 bg-white rounded-lg border border-indigo-200 p-3 shadow">
+      <div className="max-w-4xl mx-auto mt-4 bg-white rounded-lg border border-indigo-200 p-3 shadow-sm">
         <h3 className="text-xs font-bold text-indigo-700 mb-2">
           在庫評価額（{period}期: 材料@{results.invP.mat} / 仕掛品@{results.invP.wip} / 製品@{results.invP.prod}）
         </h3>
@@ -719,12 +719,12 @@ export default function App() {
           <span className="text-gray-400">+</span>
           <span className="text-gray-600">製品 <b>{state.products}</b>個 × {results.invP.prod} = <b className="text-indigo-700">{state.products * results.invP.prod}</b></span>
           <span className="text-gray-400">=</span>
-          <span className="text-lg font-bold text-indigo-800 bg-indigo-50 px-3 py-0.5 rounded border border-indigo-200">合計 {results.inventoryValue}</span>
+          <span className="text-lg font-bold text-indigo-800 bg-indigo-50 px-3 py-0.5 rounded-sm border border-indigo-200">合計 {results.inventoryValue}</span>
         </div>
       </div>
 
       {/* --- 財務入力 --- */}
-      <div className="max-w-4xl mx-auto mt-4 bg-white rounded-lg border border-gray-200 p-4 shadow">
+      <div className="max-w-4xl mx-auto mt-4 bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
         <h3 className="text-xs font-bold text-gray-700 mb-3">財務入力</h3>
         <div className="flex flex-col gap-3">
           <SliderRow label="長期借入" value={longTermLoan} onChange={setLongTermLoan} min={0} max={700} note={`利息 → ${results.ltlInterest}`} />
@@ -743,7 +743,7 @@ export default function App() {
       </div>
 
       {/* --- 損益分析 --- */}
-      <div className="max-w-4xl mx-auto mt-4 bg-white rounded-lg border border-blue-200 p-4 shadow">
+      <div className="max-w-4xl mx-auto mt-4 bg-white rounded-lg border border-blue-200 p-4 shadow-sm">
         <h3 className="text-xs font-bold text-blue-700 mb-3">損益分析</h3>
         <div className="flex flex-col gap-2">
           <SliderRow label="[G] 利益目標" value={targetProfitG} onChange={setTargetProfitG} min={-300} max={500} />
@@ -773,11 +773,11 @@ export default function App() {
             </div>
           </div>
           <div className="flex gap-3 items-center">
-            <div className="bg-gray-800 px-2 py-1 rounded text-xs">製造: <span className="font-bold text-blue-400 text-sm">{results.prodCap}</span></div>
-            <div className="bg-gray-800 px-2 py-1 rounded text-xs">販売: <span className="font-bold text-green-400 text-sm">{results.salesCap}</span></div>
-            <div className="bg-gray-800 px-2 py-1 rounded text-xs">価格: <span className="font-bold text-red-400 text-sm">{results.priceComp}</span></div>
-            <div className="bg-indigo-900 px-2 py-1 rounded text-xs border border-indigo-600">在庫評価: <span className="font-bold text-indigo-300 text-sm">{results.inventoryValue}</span></div>
-            <div className="bg-green-800 px-3 py-1 rounded border border-green-600 ml-1">
+            <div className="bg-gray-800 px-2 py-1 rounded-sm text-xs">製造: <span className="font-bold text-blue-400 text-sm">{results.prodCap}</span></div>
+            <div className="bg-gray-800 px-2 py-1 rounded-sm text-xs">販売: <span className="font-bold text-green-400 text-sm">{results.salesCap}</span></div>
+            <div className="bg-gray-800 px-2 py-1 rounded-sm text-xs">価格: <span className="font-bold text-red-400 text-sm">{results.priceComp}</span></div>
+            <div className="bg-indigo-900 px-2 py-1 rounded-sm text-xs border border-indigo-600">在庫評価: <span className="font-bold text-indigo-300 text-sm">{results.inventoryValue}</span></div>
+            <div className="bg-green-800 px-3 py-1 rounded-sm border border-green-600 ml-1">
               <span className="text-[10px] text-green-300 block leading-none">固定費計(F)</span>
               <span className="text-xl font-mono font-bold">{results.costs.total}</span>
             </div>
@@ -961,7 +961,7 @@ export default function App() {
                 </div>{/* end lg:flex-row wrapper */}
 
                 {/* 固定費内訳 */}
-                <div className="mt-3 bg-gray-50 rounded p-2 border border-gray-200">
+                <div className="mt-3 bg-gray-50 rounded-sm p-2 border border-gray-200">
                   <div className="text-xs font-bold text-gray-600 mb-1">固定費内訳 (F = {results.costs.total})</div>
                   <div className="grid grid-cols-4 gap-1 text-xs text-gray-500">
                     <span>設備費: <b className="text-gray-700">{results.costs.machines}</b></span>
@@ -972,7 +972,7 @@ export default function App() {
                 </div>
 
                 {/* 損益分岐点 */}
-                <div className="mt-2 bg-orange-50 rounded p-2 border border-orange-200 text-xs flex gap-4">
+                <div className="mt-2 bg-orange-50 rounded-sm p-2 border border-orange-200 text-xs flex gap-4">
                   <span>損益分岐点数量 <b className="text-orange-700">[Q0] = {Math.ceil(breakQ0)}</b></span>
                   <span>目標販売数 <b className="text-blue-700">[Q] = {Math.ceil(targetQ)}</b></span>
                 </div>
@@ -992,7 +992,7 @@ export default function App() {
                   <div className="border-r-2 border-gray-700">
                     {/* 流動資産 */}
                     <div className="bg-blue-50 border-b border-gray-300 px-2 py-1">
-                      <span className="text-[10px] font-bold text-blue-700 bg-blue-100 px-1 rounded">流動資産</span>
+                      <span className="text-[10px] font-bold text-blue-700 bg-blue-100 px-1 rounded-sm">流動資産</span>
                     </div>
                     <div className="divide-y divide-gray-100">
                       <div className="flex justify-between px-3 py-1">
@@ -1015,7 +1015,7 @@ export default function App() {
 
                     {/* 固定資産 */}
                     <div className="bg-purple-50 border-t-2 border-b border-gray-300 px-2 py-1 mt-1">
-                      <span className="text-[10px] font-bold text-purple-700 bg-purple-100 px-1 rounded">固定資産</span>
+                      <span className="text-[10px] font-bold text-purple-700 bg-purple-100 px-1 rounded-sm">固定資産</span>
                     </div>
                     <div className="divide-y divide-gray-100">
                       <div className="flex justify-between px-3 py-1">
@@ -1026,7 +1026,7 @@ export default function App() {
 
                     {/* 繰延資産 */}
                     <div className="bg-yellow-50 border-t-2 border-b border-gray-300 px-2 py-1 mt-1">
-                      <span className="text-[10px] font-bold text-yellow-700 bg-yellow-100 px-1 rounded">繰延資産</span>
+                      <span className="text-[10px] font-bold text-yellow-700 bg-yellow-100 px-1 rounded-sm">繰延資産</span>
                       <span className="text-[9px] text-gray-400 ml-1">
                         {ruleMode === 'senior' ? '（次繰盤・研究開発完成チップ×20）' : '（会社盤チップ-1×20）'}
                       </span>
@@ -1051,7 +1051,7 @@ export default function App() {
                   <div>
                     {/* 他人資本 / 流動負債 */}
                     <div className="bg-red-50 border-b border-gray-300 px-2 py-1">
-                      <span className="text-[10px] font-bold text-red-700 bg-red-100 px-1 rounded">他人資本</span>
+                      <span className="text-[10px] font-bold text-red-700 bg-red-100 px-1 rounded-sm">他人資本</span>
                       <span className="text-[9px] text-gray-400 ml-1">流動負債</span>
                     </div>
                     <div className="divide-y divide-gray-100">
@@ -1078,7 +1078,7 @@ export default function App() {
 
                     {/* 自己資本 */}
                     <div className="bg-green-50 border-t-2 border-b border-gray-300 px-2 py-1 mt-1">
-                      <span className="text-[10px] font-bold text-green-700 bg-green-100 px-1 rounded">自己資本</span>
+                      <span className="text-[10px] font-bold text-green-700 bg-green-100 px-1 rounded-sm">自己資本</span>
                     </div>
                     <div className="px-3 py-2 flex flex-col items-center gap-2">
                       {/* 自己資本 oval */}
@@ -1114,11 +1114,11 @@ export default function App() {
 
                 {/* 内訳メモ */}
                 <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-gray-500">
-                  <div className="bg-gray-50 rounded p-2 border">
+                  <div className="bg-gray-50 rounded-sm p-2 border">
                     <b className="text-gray-700">負債合計:</b> {totalLiabilities}
                     <span className="ml-2 text-gray-400">(納税{taxProvision} + 短借{shortTermLoan} + 長借{longTermLoan})</span>
                   </div>
-                  <div className="bg-gray-50 rounded p-2 border">
+                  <div className="bg-gray-50 rounded-sm p-2 border">
                     <b className="text-gray-700">繰延資産計:</b> {deferred.total}
                     <span className="ml-2 text-gray-400">(広告{deferred.ads} + 研究{deferred.rd} + 教育{deferred.edu})</span>
                   </div>

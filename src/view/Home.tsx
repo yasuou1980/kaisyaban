@@ -20,7 +20,7 @@ const HomePage: React.FC = () => {
         type="number"
         maxLength={10}
         onChange={(e) => summary(e.target.value)}
-        className="w-full h-[3rem] border-1 bg-gray-200 rounded-md"
+        className="w-full h-12 border bg-gray-200 rounded-md"
       />
       <div className="w-full text-green-800 text-xl">
         <p>length: {refInput.current?.value.length}</p>

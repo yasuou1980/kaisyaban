@@ -161,8 +161,8 @@ const SnapshotTable = <I,>({ data, onRestore, onRemove }: {
                 {diff === null ? '—' : diff > 0 ? `+${diff}` : fmt(diff)}
               </td>
               <td className="p-1 whitespace-nowrap font-sans">
-                <button onClick={() => onRestore(s)} className="px-2 py-0.5 text-[11px] bg-blue-50 text-blue-700 rounded border border-blue-200 mr-1">読込</button>
-                <button onClick={() => onRemove(s.id)} className="px-2 py-0.5 text-[11px] bg-red-50 text-red-600 rounded border border-red-200">削除</button>
+                <button onClick={() => onRestore(s)} className="px-2 py-0.5 text-[11px] bg-blue-50 text-blue-700 rounded-sm border border-blue-200 mr-1">読込</button>
+                <button onClick={() => onRemove(s.id)} className="px-2 py-0.5 text-[11px] bg-red-50 text-red-600 rounded-sm border border-red-200">削除</button>
               </td>
             </tr>
           );
@@ -212,11 +212,11 @@ export function SnapshotPanel<I>({ snapshots, defaultLabel, onSave, onRestore, o
           value={label}
           onChange={e => setLabel(e.target.value)}
           placeholder={defaultLabel}
-          className="flex-1 border rounded px-2 py-1 text-sm"
+          className="flex-1 border rounded-sm px-2 py-1 text-sm"
         />
         <button
           onClick={() => { onSave(label.trim() || defaultLabel); setLabel(''); }}
-          className="px-3 py-1 text-sm font-bold bg-green-600 text-white rounded shadow hover:bg-green-700"
+          className="px-3 py-1 text-sm font-bold bg-green-600 text-white rounded-sm shadow-sm hover:bg-green-700"
         >
           現在値を記録
         </button>
@@ -232,8 +232,8 @@ export function SnapshotPanel<I>({ snapshots, defaultLabel, onSave, onRestore, o
       )}
 
       <div className="flex gap-2 mt-3 text-xs">
-        <button onClick={exportJson} disabled={snapshots.length === 0} className="px-2 py-1 border rounded disabled:opacity-40">JSON書き出し</button>
-        <label className="px-2 py-1 border rounded cursor-pointer">
+        <button onClick={exportJson} disabled={snapshots.length === 0} className="px-2 py-1 border rounded-sm disabled:opacity-40">JSON書き出し</button>
+        <label className="px-2 py-1 border rounded-sm cursor-pointer">
           JSON読み込み
           <input type="file" accept="application/json" className="hidden"
             onChange={e => { const f = e.target.files?.[0]; if (f) importJson(f); e.target.value = ''; }} />
@@ -241,7 +241,7 @@ export function SnapshotPanel<I>({ snapshots, defaultLabel, onSave, onRestore, o
         <button
           onClick={() => { if (window.confirm('記録をすべて削除しますか？')) onClear(); }}
           disabled={snapshots.length === 0}
-          className="px-2 py-1 border border-red-300 text-red-600 rounded disabled:opacity-40 ml-auto"
+          className="px-2 py-1 border border-red-300 text-red-600 rounded-sm disabled:opacity-40 ml-auto"
         >
           全削除
         </button>
